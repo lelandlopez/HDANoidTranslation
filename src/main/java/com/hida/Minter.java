@@ -6,46 +6,44 @@ import java.util.ArrayList;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
- * A class that creates ids using the ark formatting convention. Currently
- * deciding whether or not to merge this with Minter
+ * Minter class creates formatted ids in json using a variety of parameters.
  *
  * @author Brittany Cruz
  * @author lruffin
  */
 public class Minter {
 
-    private static DatabaseManager DATABASE_MANAGER = new DatabaseManager();
-    private String charMap; //= "12345abc";
-    private String idPrefix;// = "xyz1";
-    private int idLength;// = 10;
+    private final static DatabaseManager DATABASE_MANAGER = 
+            new DatabaseManager();
+    private final String CHAR_MAP;
 
     // fields    
-    private final String NAAN = "/:ark/70111/";    
-    private String PREPEND;
+    private final String NAAN = "/:ark/70111/";
+    private final String PREPEND;
     private final int AMOUNT;
     private final int LENGTH;
-    private final String PREFIX;
-    private final String FORMAT;
+    private final String PREFIX;    
     private ArrayList<String> ID_ARRAY = new ArrayList();
     private final HashMap<String, String> tokenMaps = new HashMap();
 
     /**
      * Instantiates an Ark minter that will generate the requested amount of ids
      *
-     * @param amount - amount of ids to mint
+     * @param CHAR_MAP
+     * @param PREPEND
+     * @param AMOUNT
+     * @param LENGTH     
+     * @param PREFIX
      */
-    public Minter(int amount) {
-        retrieveSettings();
-        this.AMOUNT = amount;
-        this.PREFIX = getIdPrefix();
-        this.FORMAT = getCharMap();
-        this.LENGTH = (10 - this.PREFIX.length());
+    public Minter(String CHAR_MAP, String PREPEND, int AMOUNT, int LENGTH, 
+            String PREFIX) {
+        this.CHAR_MAP = CHAR_MAP;
+        this.PREPEND = PREPEND;
+        this.AMOUNT = AMOUNT;
+        this.LENGTH = LENGTH;
+        this.PREFIX = PREFIX;
+        //this.FORMAT = FORMAT;
 
-        /*
-         deciding whether or not to store these values in a database or just 
-         constantly generate them. If the latter, should I store them 
-         somewhere else, such as in a separate class or in the minter        
-         */
         this.tokenMaps.put("DIGIT", "0123456789");
         this.tokenMaps.put("LOWERCASE", "abcdefghijklmnopqrstuvwxyz");
         this.tokenMaps.put("UPPERCASE", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
@@ -57,46 +55,7 @@ public class Minter {
                 + "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     }
 
-    /**
-     * Proposed use to retrieve any stored data from database. Deciding how
-     * it'll interact with java beans. Need to read up more on it
-     */
-    public void retrieveSettings() {
-        this.charMap = "12345abc";
-        this.idPrefix = "xyz1";
-        this.idLength = 10;
-    }
-
-    /* constructors; currently unsed - subject to removal */
-    /*
-     public ArkMinter(int amount, int length) {
-     this.PREFIX = "";
-     this.AMOUNT = amount;
-     this.LENGTH = length;
-     this.FORMAT = "auto";
-     }
-
-     public ArkMinter(int amount, String prefix, int length) {
-     this.PREFIX = prefix;
-     this.AMOUNT = amount;
-     this.LENGTH = length;
-     this.FORMAT = "auto";
-     }
-
-     public ArkMinter(int amount, String format) {
-     this.PREFIX = "";
-     this.AMOUNT = amount;
-     this.LENGTH = format.length();
-     this.FORMAT = format;
-     }
-
-     public ArkMinter(int amount, String prefix, String format) {
-     this.PREFIX = prefix;
-     this.AMOUNT = amount;
-     this.LENGTH = (prefix.length() + format.length());
-     this.FORMAT = format;
-     }
-     */
+    
     /**
      * * genIDauto() Method description: This generates an automated ID format.
      * User would give a string that excepts 6 letters: {d, l, u, m, e, a}.
@@ -125,11 +84,12 @@ public class Minter {
         String characters = (String) this.tokenMaps.get(token);
 
         int numIdsToMake = this.AMOUNT;
+        int prefixSize = this.PREFIX.length();
         do {
             int charactersLength = characters.length();
             for (int j = 0; j < numIdsToMake; j++) {
                 StringBuilder buffer = new StringBuilder();
-                for (int i = 0; i < this.LENGTH; i++) {
+                for (int i = 0; i < this.LENGTH - prefixSize; i++) {
                     double index = Math.random() * charactersLength;
                     buffer.append(characters.charAt((int) index));
                 }
@@ -167,7 +127,7 @@ public class Minter {
      * @return - A reference to a JsonObject that contains Json list of ids
      */
     public String genIdCustom(boolean isRandom) {
-        String format = this.FORMAT.toLowerCase();
+        String format = this.CHAR_MAP.toLowerCase();
         String tokenType = "";
         double index = 0.0D;
         for (int j = 0; j < this.AMOUNT; j++) {
@@ -257,26 +217,17 @@ public class Minter {
                         (this.tokenMaps.get(tokenType)).charAt((int) index));
             }
             String temp = buffer.toString();
-            this.ID_ARRAY.add(NAAN + this.PREFIX + temp);
+            this.ID_ARRAY.add(this.PREFIX + temp);
         }
         return convertListToJson();
     }
 
     /**
-     * Creates a Json object based off the ids in of ID_ARRAY
+     * Creates a Json object based off the ids in of ID_ARRAY.
      *
-     * @return - A reference to a JsonObject that contains Json list of ids
+     * @return - A reference to a String that contains Json list of ids
      */
-    private String convertListToJson() {
-        /*
-         JsonBuilderFactory factory = Json.createBuilderFactory(null);
-         JsonObjectBuilder list = factory.createObjectBuilder();
-         JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
-         for (int i = 0; i < this.AMOUNT; i++) {
-         arrayBuilder.add(Json.createObjectBuilder().add("id", i).
-         add("name", (String) this.ID_ARRAY.get(i)));
-         }
-         */
+    private String convertListToJson() {        
         // Jackson objects to create formatted Json string
         String jsonString = "";
         ObjectMapper mapper = new ObjectMapper();
@@ -296,7 +247,7 @@ public class Minter {
         } catch (IOException exception) {
             System.err.println(exception.getMessage());
         }
-
+        
         return jsonString;
     }
 
@@ -320,28 +271,16 @@ public class Minter {
     }
 
     /* typical getter and setter methods */
-    public String getCharMap() {
-        return this.charMap;
+    public String getCHAR_MAP() {
+        return this.CHAR_MAP;
     }
 
-    public void setCharMap(String charMap) {
-        this.charMap = charMap;
+    public String getPREFIX() {
+        return this.PREFIX;
     }
 
-    public String getIdPrefix() {
-        return this.idPrefix;
-    }
-
-    public void setIdPrefix(String idPrefix) {
-        this.idPrefix = idPrefix;
-    }
-
-    public int getIdLength() {
-        return this.idLength;
-    }
-
-    public void setIdLength(int idLength) {
-        this.idLength = idLength;
+    public int getLENGTH() {
+        return this.LENGTH;
     }
 
     public ArrayList<String> getID_ARRAY() {
@@ -351,9 +290,8 @@ public class Minter {
     public void setID_ARRAY(ArrayList<String> ID_ARRAY) {
         this.ID_ARRAY = ID_ARRAY;
     }
-    
-    
-    public DatabaseManager getDatabaseManager(){
+
+    public DatabaseManager getDatabaseManager() {
         return DATABASE_MANAGER;
     }
 
@@ -361,11 +299,8 @@ public class Minter {
         return PREPEND;
     }
 
-    public void setPREPEND(String PREPEND) {
-        this.PREPEND = PREPEND;
+    public int getAMOUNT() {
+        return AMOUNT;
     }
-    
-    
-    
 
 }
