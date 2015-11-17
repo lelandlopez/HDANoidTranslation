@@ -1,21 +1,19 @@
 package com.hida;
 
-import java.io.FileInputStream;
-import javax.json.JsonObject;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 
 /**
- * A controller class that paths the user to all jsp files
+ * A controller class that paths the user to all jsp files in WEB_INF/jsp.
  *
  * @author lruffin
  */
@@ -33,52 +31,39 @@ public class MinterController {
     private String charMap;
 
     /**
-     * Creates a path to mint ids
+     * Creates a path to mint ids. If parameters aren't given then printPids
+     * will resort to using the default values found in minter_config.properties
      *
      * @param input - requested number of ids to mint
      * @param model - serves as a holder for the model so that attributes can be
-     * added
-     * @param prepend
-     * @param prefix
-     * @param isSequential
-     * @param idType
-     * @param length
-     * @param charMap
-     * @param isAuto
+     * added.
+     * @param parameters - parameters given by user to instill variety in ids
      * @return - paths user to mint.jsp
      */
     @RequestMapping(value = {"/mint/{input}"},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
-    public String printPids(@PathVariable String input, ModelMap model ///*
-            ,
-            @RequestParam(value = "prepend") String prepend,
-            @RequestParam(value = "prefix") String prefix,
-            @RequestParam(value = "isSequential") String isSequential,
-            @RequestParam(value = "idType") String idType,
-            @RequestParam(value = "length") String length,
-            @RequestParam(value = "charMap") String charMap,
-            @RequestParam(value = "isAuto") String isAuto
-    //*/
-    ) {
+    public String printPids(@PathVariable String input, ModelMap model,
+            @RequestParam Map<String, String> parameters) {
+
+        // message variable to be sent to mint.jsp
         String message;
         try {
             int amount = Integer.parseInt(input);
 
-            Minter minter = new Minter(amount);
-
+            System.out.print("retrieving data...");
             // retrieve default setting
             this.retrieveDefaultSetting();
 
-            /*// bad
-             this.setDefaultSetting(minter,
-             prependedString, prefix, isAuto + "", idType,
-             length + "", charMap, isAuto + "");
-             */
-            ///* // good
-            this.setDefaultSetting(minter,
-                    prepend, prefix, isSequential, idType,
-                    length, charMap, isAuto);
-            //*/
+            // choose between default and given client parameters
+            this.setDefaultSetting(parameters);
+
+            // make minter object with loaded results            
+            Minter minter = new Minter(this.getCharMap(),
+                    this.getPrependedString(),
+                    amount,
+                    this.getLength(),
+                    this.getPrefix());
+
             if (minter.getDatabaseManager().createConnection()) {
                 if (this.isAuto) {
                     message = minter.genIdAuto(idType);
@@ -91,7 +76,6 @@ public class MinterController {
 
             }
 
-            //createArkMinter(amount, model);
         } // detects number fomatting errors in input
         catch (NumberFormatException exception) {
             message = String.format(
@@ -102,81 +86,55 @@ public class MinterController {
             message = String.format(
                     "%s", exception.getMessage());
             model.addAttribute("message", message);
+        } // used to see if values were properly retrieved from property file
+        catch (NullPointerException exception) {
+            System.out.println(String.format("prepend=%s\nprefix=%s\n"
+                    + "length=%d\ncharMap=%s\nisAuto=%b\n"
+                    + "isSequential=%b\nidType=%s", prependedString, prefix,
+                    length, charMap, isAuto, isSequential, idType));
+            System.out.println(Arrays.toString(exception.getStackTrace()));
         }
+
         return "mint";
     }
 
-    public void setDefaultSetting(Minter minter, String prepend, String prefix,
-            String isSequential, String idType, String length, String charMap,
-            String isAuto) {
-        if (prepend == null) {
-            minter.setPREPEND("");
-        } else {
-            minter.setPREPEND(this.prependedString);
+    /**
+     * Method that sets the fields to any given parameters. Defaults to values
+     * found in minter_config.properties file.
+     * @param parameters - list of given parameters.
+     */
+    public void setDefaultSetting(Map<String, String> parameters) {
+
+        if (parameters.containsKey("prepend")) {
+            this.setPrependedString(parameters.get("prepend"));
         }
-        if (prefix == null) {
-            minter.setIdPrefix(this.prefix);
-        } else {
-            minter.setIdPrefix(prefix);
+        if (parameters.containsKey("prefix")) {
+            this.setPrefix(parameters.get("prefix"));
+            System.out.println("prefix=" + parameters.get("prefix"));
         }
-        if (isSequential != null) {
-            this.setIsSequential(Boolean.parseBoolean(isSequential));
+
+        if (parameters.containsKey("length")) {
+            this.setLength(Integer.parseInt(parameters.get("length")));
         }
-        if (idType != null) {
-            this.setIdType(idType);
+        if (parameters.containsKey("charMap")) {
+            this.setCharMap(parameters.get("charMap"));
         }
-        if (length == null) {
-            minter.setIdLength(this.length);
-        } else {
-            minter.setIdLength(Integer.parseInt(length));
+        if (parameters.containsKey("isAuto")) {
+            this.setIsAuto(Boolean.parseBoolean(parameters.get("isAuto")));
         }
-        if (charMap == null) {
-            minter.setCharMap(this.charMap);
-        } else {
-            minter.setCharMap(charMap);
+        if (parameters.containsKey("isSequential")) {
+            this.setIsSequential(
+                    this.isSequential
+                    = Boolean.parseBoolean(
+                            parameters.get("isSequential")));
         }
-        if (isAuto != null) {
-            this.setIsAuto(Boolean.parseBoolean(isAuto));
+        if (parameters.containsKey("idType")) {
+            this.setIdType(parameters.get("idType"));
         }
 
     }
 
-    /**
-     * Used to create PseudoMinter. Will be implemented after deciding how data
-     * should be received from user. JavaBeans?
-     *
-     * @param amount - requested number of ids to mint
-     * @param model - serves as a holder for the model so that attributes can be
-     * added
-     */
-    /*
-     private void createPseudoMinter(int amount, ModelMap model) {
-     PseudoMinter pminter = new PseudoMinter(amount);
-
-     //pminter.retrieveSettings();
-     JsonObject idList = pminter.genIdAuto("EXTENDED");
-
-     model.addAttribute("message", idList);
-     }
-     */
-    /**
-     * Used to create ArkMinter.
-     *
-     * @param amount - requested number of ids to mint
-     * @param model - serves as a holder for the model so that attributes can be
-     * added
-     */
-    /*
-     private void createArkMinter(int amount, ModelMap model) {
-     Minter arkminter = new Minter(amount);
-
-     arkminter.retrieveSettings();
-
-     JsonObject idList;// = arkminter.genIdAuto("EXTENDED");
-
-     model.addAttribute("message", idList);
-     }
-     */
+    
     /**
      * Maps to home page.
      *
@@ -184,9 +142,9 @@ public class MinterController {
      */
     @RequestMapping(value = {""},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
-    public String printIndex() {
+    public String displayIndex() {
         return "index";
-    }
+    } // end printIndex
 
     /**
      * maps to settings.jsp so that the user may input data in a form.
@@ -198,33 +156,43 @@ public class MinterController {
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String handleForm(ModelMap model) {
         return "settings";
-    }
+    } // end handleForm
 
     /**
-     * Retrieve default settings for minter from property file
+     * Retrieve default settings for minter from property file.
      */
     private void retrieveDefaultSetting() {
         try {
 
             // load property file
             Properties properties = new Properties();
-            InputStream input = new FileInputStream(CONFIG_FILE);
-
-            properties.load(input);
-
-            // get configurations from property file
+            
+            properties.load(Thread.currentThread().
+                    getContextClassLoader().getResourceAsStream(
+                            String.format("%s", CONFIG_FILE)));
+            
+            // retrieve values found in minter_config.properties file
             setIsSequential(
                     Boolean.parseBoolean(
                             properties.getProperty("isSequential")));
+            
             setCharMap(properties.getProperty("charMap"));
-            setIdType(properties.getProperty("idType"));
-            setLength(Integer.parseInt(properties.getProperty("idType")));
-            setPrefix(properties.getProperty("prefix"));
-            setPrependedString((properties.getProperty("prependedString")));
-        } catch (IOException exception) {
 
+            setIdType(properties.getProperty("idType"));
+
+            setLength(Integer.parseInt(properties.getProperty("length")));
+
+            setPrefix(properties.getProperty("prefix"));
+
+            setPrependedString((properties.getProperty("prependedString")));
+
+            setIsAuto(
+                    Boolean.parseBoolean((properties.getProperty("isAuto"))));
+
+        } catch (IOException exception) {
+            System.out.println(exception.getMessage());
         }
-    }
+    } // end retrieveDefaultSetting
 
     /* typical getter and setter methods */
     public String getPrependedString() {
@@ -282,5 +250,4 @@ public class MinterController {
     public void setIsAuto(boolean isAuto) {
         this.isAuto = isAuto;
     }
-
-}
+} // end class
