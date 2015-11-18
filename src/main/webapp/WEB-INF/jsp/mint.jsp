@@ -10,7 +10,5 @@
     <head>
         <title>minted ids</title>
     </head>
-    <body>
-        ${message}
-    </body>
+    <pre>${message}</pre>
 </html>
