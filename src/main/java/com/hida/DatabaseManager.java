@@ -93,8 +93,9 @@ public class DatabaseManager {
             System.err.println(exception.getMessage() + " in addId");
             System.err.println(Arrays.toString(exception.getStackTrace()));
         }
+        System.out.println("printed to database");
         // prints out to server what ids were created
-        printData();
+        //printData();
         
     }
 
@@ -188,6 +189,7 @@ public class DatabaseManager {
             System.err.println(exception.getMessage() + " in checkPrefix");
             System.err.println(Arrays.toString(exception.getStackTrace()));
         }
+        // error value, will revise later
         return -1;
 
     }
@@ -256,5 +258,4 @@ public class DatabaseManager {
             return false;
         }
     }
-
 }
