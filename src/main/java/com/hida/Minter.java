@@ -2,7 +2,9 @@ package com.hida;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
@@ -13,8 +15,8 @@ import org.codehaus.jackson.map.ObjectMapper;
  */
 public class Minter {
 
-    private final static DatabaseManager DATABASE_MANAGER = 
-            new DatabaseManager();
+    private final static DatabaseManager DATABASE_MANAGER
+            = new DatabaseManager();
     private final String CHAR_MAP;
 
     // fields    
@@ -22,8 +24,8 @@ public class Minter {
     private final String PREPEND;
     private final int AMOUNT;
     private final int LENGTH;
-    private final String PREFIX;    
-    private ArrayList<String> ID_ARRAY = new ArrayList();
+    private final String PREFIX;
+    private final Set<String> ID_LIST;
     private final HashMap<String, String> tokenMaps = new HashMap();
 
     /**
@@ -32,18 +34,19 @@ public class Minter {
      * @param CHAR_MAP
      * @param PREPEND
      * @param AMOUNT
-     * @param LENGTH     
+     * @param LENGTH
      * @param PREFIX
      */
-    public Minter(String CHAR_MAP, String PREPEND, int AMOUNT, int LENGTH, 
+    public Minter(String CHAR_MAP, String PREPEND, int AMOUNT, int LENGTH,
             String PREFIX) {
         this.CHAR_MAP = CHAR_MAP;
         this.PREPEND = PREPEND;
         this.AMOUNT = AMOUNT;
         this.LENGTH = LENGTH;
         this.PREFIX = PREFIX;
-        //this.FORMAT = FORMAT;
+        this.ID_LIST = new HashSet(AMOUNT);
 
+        // char mappings
         this.tokenMaps.put("DIGIT", "0123456789");
         this.tokenMaps.put("LOWERCASE", "abcdefghijklmnopqrstuvwxyz");
         this.tokenMaps.put("UPPERCASE", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
@@ -55,9 +58,12 @@ public class Minter {
                 + "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     }
 
-    
     /**
-     * * genIDauto() Method description: This generates an automated ID format.
+     * genIDauto() Method description: This generates an automated ID format.
+     * Note that this method will take longer and longer to create unique ids
+     * because the ids it produces will randomize. Need to figure out a way
+     * to quickly discover unminted ids in database. 
+     * 
      * User would give a string that excepts 6 letters: {d, l, u, m, e, a}.
      * Similar to the Mode settings in genIDauto() method. d:
      *
@@ -78,29 +84,116 @@ public class Minter {
      * @param token: There are 2 different modes to choose from. RANDOM: Value
      * by value, each value's order is randomized. SEQUENTIAL: Value by value,
      * each value's order is sequenced.
-     * @return - A reference to a JsonObject that contains Json list of ids
+     * @return - The method checks to see if it is even possible to produce
+     * the requested amount of ids using the given parameters. If it can't 
+     * it'll return an error message. Otherwise a reference to a JsonObject 
+     * that contains Json list of ids is returned. 
+     * 
      */
     public String genIdAuto(String token) {
-        String characters = (String) this.tokenMaps.get(token);
 
-        int numIdsToMake = this.AMOUNT;
-        int prefixSize = this.PREFIX.length();
-        do {
+        // checks to see if its possible to produce or add requested amount of
+        // ids to database
+        if (isPrefixAvailable(true, token)) {
+            // creates a list to hold redundant ids
+            Set<String> redundantIdList = new HashSet();
+            
+            // a range of characters that can be used, retrieved by tokenMap
+            String characters = (String) this.tokenMaps.get(token);
+
+            // sets the number of ids to make
+            int numIdsToMake = this.AMOUNT;
+            int prefixSize = this.PREFIX.length();
             int charactersLength = characters.length();
-            for (int j = 0; j < numIdsToMake; j++) {
-                StringBuilder buffer = new StringBuilder();
-                for (int i = 0; i < this.LENGTH - prefixSize; i++) {
-                    double index = Math.random() * charactersLength;
-                    buffer.append(characters.charAt((int) index));
+            
+            do {
+                
+                // creates tentative ids that'll be checked for uniqueness
+                while(ID_LIST.size() < numIdsToMake) {
+                    StringBuilder buffer = new StringBuilder();
+                    for (int i = 0; i < this.LENGTH - prefixSize; i++) {
+                        double index = Math.random() * charactersLength;
+                        buffer.append(characters.charAt((int) index));
+                    }
+                    String temp = buffer.toString();
+                    this.ID_LIST.add(this.PREFIX + temp);
                 }
-                String temp = buffer.toString();
-                this.ID_ARRAY.add(this.PREFIX + temp);
-            }
-            ID_ARRAY = DATABASE_MANAGER.addId(ID_ARRAY);
+                redundantIdList.addAll(DATABASE_MANAGER.checkId(ID_LIST));
 
-            numIdsToMake -= ID_ARRAY.size();
-        } while (numIdsToMake > 0);
-        return convertListToJson();
+                // removes any redundant ids
+                removeRedundantId(redundantIdList);
+                
+                // if no redundant ids were found, add new ids to database
+                if(ID_LIST.size() == this.AMOUNT){
+                    DATABASE_MANAGER.addId(ID_LIST);
+                }else{     
+                    // decreases the number of ids to make based on what was 
+                    // just added to ID_LIST
+                    numIdsToMake = this.AMOUNT - ID_LIST.size();
+                }
+                
+
+                System.out.println("size = " + ID_LIST.size());
+                System.out.println("amount = " + this.AMOUNT);
+            } while (ID_LIST.size() < this.AMOUNT);
+            return convertListToJson();
+
+        } else {
+            // error message stating that ids can no longer be printed
+            // using specified prefix and length
+            return "cannot make any more ids given parameters";
+        }
+
+    }
+
+    /**
+     * A method used to see the amount of ids in the database contain the
+     * requested prefix and length.
+     * 
+     * There is a flaw in that this method does not use big integer. As of
+     * right now it depends on user not choosing a format that will not produce
+     * 2^64 unique ids. 
+     *
+     * @param isAuto
+     * @param token
+     * @return - true if there is space available
+     */
+    private boolean isPrefixAvailable(boolean isAuto, String token) {
+        
+        int matchingIds = DATABASE_MANAGER.checkPrefix(PREFIX, LENGTH);
+        int numFreeDigits = this.LENGTH - this.PREFIX.length();
+        int base = this.tokenMaps.get(token).length();
+        
+        if(matchingIds == -1){
+            System.out.println("somethings wrong in isPrefix");
+            return false;
+        }
+
+        if (isAuto) {
+            // counts the number of permutations
+            long numPermutations = (long) Math.pow(base, numFreeDigits);
+            return numPermutations - matchingIds > this.AMOUNT;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * Removes redundant ids from ID_LIST based on given redundantList.
+     * 
+     * @param redundantList - list of redundancies
+     */
+    private void removeRedundantId(Set<String> redundantList) {
+        for (String redundantId : redundantList) {
+            ID_LIST.remove(redundantId);
+            System.out.println("removed: " + redundantId);            
+        }
+        System.out.println("printing current list of ids");
+        for (String id : ID_LIST) {
+            
+            System.out.println(id);
+        }        
     }
 
     /**
@@ -217,7 +310,7 @@ public class Minter {
                         (this.tokenMaps.get(tokenType)).charAt((int) index));
             }
             String temp = buffer.toString();
-            this.ID_ARRAY.add(this.PREFIX + temp);
+            this.ID_LIST.add(this.PREFIX + temp);
         }
         return convertListToJson();
     }
@@ -227,16 +320,19 @@ public class Minter {
      *
      * @return - A reference to a String that contains Json list of ids
      */
-    private String convertListToJson() {        
+    private String convertListToJson() {
         // Jackson objects to create formatted Json string
         String jsonString = "";
         ObjectMapper mapper = new ObjectMapper();
         Object formattedJson;
         try {
-            for (int i = 0; i < ID_ARRAY.size(); i++) {
+            // Object used to iterate through list of ids
+            Iterator<String> iterator = ID_LIST.iterator();
+            for (int i = 0;iterator.hasNext(); i++) {
+                
                 // map desired Json format
                 String id = String.format(
-                        "{\"id\":%d,\"name\":\"%s\"}", i, ID_ARRAY.get(i));
+                        "{\"id\":%d,\"name\":\"%s\"}", i, iterator.next());
 
                 formattedJson = mapper.readValue(id, Object.class);
 
@@ -247,7 +343,7 @@ public class Minter {
         } catch (IOException exception) {
             System.err.println(exception.getMessage());
         }
-        
+
         return jsonString;
     }
 
@@ -258,14 +354,14 @@ public class Minter {
      * @return - true if the id exists in the database
      */
     public boolean checkID(String ID) {
-        return this.ID_ARRAY.contains(ID);
+        return this.ID_LIST.contains(ID);
     }
 
     /**
      * error checking
      */
     public void printID_ARRAY() {
-        for (String index : this.ID_ARRAY) {
+        for (String index : this.ID_LIST) {
             System.out.println(index);
         }
     }
@@ -283,13 +379,9 @@ public class Minter {
         return this.LENGTH;
     }
 
-    public ArrayList<String> getID_ARRAY() {
-        return ID_ARRAY;
-    }
-
-    public void setID_ARRAY(ArrayList<String> ID_ARRAY) {
-        this.ID_ARRAY = ID_ARRAY;
-    }
+    public Set<String> getID_ARRAY() {
+        return ID_LIST;
+    }   
 
     public DatabaseManager getDatabaseManager() {
         return DATABASE_MANAGER;
