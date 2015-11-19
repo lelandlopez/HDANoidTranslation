@@ -8,14 +8,33 @@
         <title>Index</title>
     </head>
     <body>
-        <h1>Login</h1>
+        <h1>Instructions</h1>
         <pre>
-        Because I haven't quite figured out how to do login I'm going to 
-        assume that you're not going to abuse the minter.
+        <h3>paths:</h3>
+        */settings
+        */mint/#
 
-        Any suggestions for this page?
-        - Instructions on what to do?
+        <h3>parameters for mint path:</h3>
+        boolean isAuto
+        boolean isSequential
+        int length
+        String prefix
+        String prepend
+        String charMap 
+        String idType
+
+        <h3>char map key:</h3>
+        d = digital 
+        l = lowercase
+        u = uppercase 
+        m = mixed-case 
+        e = extended 
+        a = alpha-numeric
+        
+
+        Any other suggestions for this page?        
         - Settings management here?
+        - explanation of service?
         </pre>
         
     </body>
