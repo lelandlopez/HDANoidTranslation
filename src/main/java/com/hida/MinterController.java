@@ -7,10 +7,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * A controller class that paths the user to all jsp files in WEB_INF/jsp.
@@ -20,13 +24,12 @@ import java.util.Properties;
 @Controller
 public class MinterController {
 
-    // fields for minter's default values
+    // fields for minter's default values, cached values
     private final String CONFIG_FILE = "minter_config.properties";
     private String prependedString;
     private String prefix;
-    private boolean isSequential;
-    private boolean isAuto;
-    private String idType;
+    private String minterType;
+    private String tokenType;
     private int length;
     private String charMap;
 
@@ -64,11 +67,19 @@ public class MinterController {
                     this.getLength(),
                     this.getPrefix());
 
+            
+            
             if (minter.getDatabaseManager().createConnection()) {
-                if (this.isAuto) {
-                    message = minter.genIdAuto(idType);
+                if (minterType.equals("AUTO")) {
+                    
+                    message = minter.genIdAuto(tokenType);
+                } else if (minterType.equals("SEQUENTIAL")) {
+                    message = minter.genIdSequential(tokenType);
+                } else if (minterType.equals("CUSTOM")) {
+                    message = "unsupported";
+                    //message = minter.genIdCustom(tokenType);
                 } else {
-                    message = minter.genIdCustom(this.isSequential);
+                    message = "error";
                 }
                 minter.getDatabaseManager().closeConnection();
                 model.addAttribute("message", message);
@@ -76,7 +87,7 @@ public class MinterController {
 
             }
 
-        } // detects number fomatting errors in input
+        } // detects number fomatting errors in input 
         catch (NumberFormatException exception) {
             message = String.format(
                     "input error %s", exception.getMessage());
@@ -89,18 +100,23 @@ public class MinterController {
         } // used to see if values were properly retrieved from property file
         catch (NullPointerException exception) {
             System.out.println(String.format("prepend=%s\nprefix=%s\n"
-                    + "length=%d\ncharMap=%s\nisAuto=%b\n"
-                    + "isSequential=%b\nidType=%s", prependedString, prefix,
-                    length, charMap, isAuto, isSequential, idType));
+                    + "length=%d\ncharMap=%s\nminterType=%s\ntokenType=%s",
+                    prependedString, prefix, length, charMap,
+                    minterType, tokenType));
+            System.out.println("here, null found");
             System.out.println(Arrays.toString(exception.getStackTrace()));
+            System.out.println("here, null found");
         }
-
+        catch (TooManyPermutationsException exception){
+            
+        }
         return "mint";
     }
 
     /**
      * Method that sets the fields to any given parameters. Defaults to values
      * found in minter_config.properties file.
+     *
      * @param parameters - list of given parameters.
      */
     public void setDefaultSetting(Map<String, String> parameters) {
@@ -110,31 +126,22 @@ public class MinterController {
         }
         if (parameters.containsKey("prefix")) {
             this.setPrefix(parameters.get("prefix"));
-            System.out.println("prefix=" + parameters.get("prefix"));
         }
-
         if (parameters.containsKey("length")) {
             this.setLength(Integer.parseInt(parameters.get("length")));
         }
         if (parameters.containsKey("charMap")) {
             this.setCharMap(parameters.get("charMap"));
         }
-        if (parameters.containsKey("isAuto")) {
-            this.setIsAuto(Boolean.parseBoolean(parameters.get("isAuto")));
+        if (parameters.containsKey("minterType")) {
+            this.minterType = parameters.get("minterType");
         }
-        if (parameters.containsKey("isSequential")) {
-            this.setIsSequential(
-                    this.isSequential
-                    = Boolean.parseBoolean(
-                            parameters.get("isSequential")));
-        }
-        if (parameters.containsKey("idType")) {
-            this.setIdType(parameters.get("idType"));
+        if (parameters.containsKey("tokenType")) {
+            this.setTokenType(parameters.get("tokenType"));
         }
 
     }
 
-    
     /**
      * Maps to home page.
      *
@@ -158,7 +165,16 @@ public class MinterController {
         return "settings";
     } // end handleForm
 
-    /**
+    
+    
+    @ExceptionHandler({SQLException.class})
+    public String parameterErrorHandler(Map<String, String> incorrectParam){
+        String message = "";
+        final String errorMessage = "";
+        return message;
+    }
+            
+     /**
      * Retrieve default settings for minter from property file.
      */
     private void retrieveDefaultSetting() {
@@ -166,19 +182,17 @@ public class MinterController {
 
             // load property file
             Properties properties = new Properties();
-            
+
             properties.load(Thread.currentThread().
                     getContextClassLoader().getResourceAsStream(
                             String.format("%s", CONFIG_FILE)));
-            
+
             // retrieve values found in minter_config.properties file
-            setIsSequential(
-                    Boolean.parseBoolean(
-                            properties.getProperty("isSequential")));
-            
+            minterType = properties.getProperty("minterType");
+
             setCharMap(properties.getProperty("charMap"));
 
-            setIdType(properties.getProperty("idType"));
+            setTokenType(properties.getProperty("tokenType"));
 
             setLength(Integer.parseInt(properties.getProperty("length")));
 
@@ -186,13 +200,30 @@ public class MinterController {
 
             setPrependedString((properties.getProperty("prependedString")));
 
-            setIsAuto(
-                    Boolean.parseBoolean((properties.getProperty("isAuto"))));
-
         } catch (IOException exception) {
             System.out.println(exception.getMessage());
         }
     } // end retrieveDefaultSetting
+    
+    
+    /**
+     * Produces a 400 error
+     */
+    @ResponseStatus(value=HttpStatus.BAD_REQUEST, 
+            reason="Given prefix and length parameters "
+                    + "produce too many permutations")  
+    public class TooManyPermutationsException extends RuntimeException {
+        
+        
+        public TooManyPermutationsException(
+                String prefix, int length, int numIdRemaining){
+            super(String.format(
+                    "There are %d remaining ids can be generated given "
+                    + "current prefix (%s) and length parameters (%d)",
+                    numIdRemaining, prefix, length));
+            
+        }
+    }
 
     /* typical getter and setter methods */
     public String getPrependedString() {
@@ -211,20 +242,12 @@ public class MinterController {
         this.prefix = prefix;
     }
 
-    public boolean isIsSequential() {
-        return isSequential;
+    public String getTokenType() {
+        return tokenType;
     }
 
-    public void setIsSequential(boolean isSequential) {
-        this.isSequential = isSequential;
-    }
-
-    public String getIdType() {
-        return idType;
-    }
-
-    public void setIdType(String idType) {
-        this.idType = idType;
+    public void setTokenType(String idType) {
+        this.tokenType = idType;
     }
 
     public int getLength() {
@@ -243,11 +266,4 @@ public class MinterController {
         this.charMap = charMap;
     }
 
-    public boolean isIsAuto() {
-        return isAuto;
-    }
-
-    public void setIsAuto(boolean isAuto) {
-        this.isAuto = isAuto;
-    }
 } // end class
