@@ -64,18 +64,19 @@ public class DatabaseManager {
      *
      * @param list - list of ids to check.
      */
-    public synchronized void addId(Set<String> list) {
+    public synchronized void addId(Set<Id> list) {
         //ArrayList<String> redundantIdList = new ArrayList();
-        try {
+        System.out.println("adding ids...");
+        for (Id id : list) {
+            try {
 
-            // a string to hold sqlite3 queries
-            String sqlQuery;
+                // a string to hold sqlite3 queries
+                String sqlQuery;
 
-            for (String id : list) {
                 // assign a sqlite3 query that adds an id to the database
-                System.out.println("adding id...");
+                
                 sqlQuery = String.format("INSERT INTO %s (%s) "
-                        + "VALUES('%s')", TABLE_NAME, COLUMN_NAME , id);
+                        + "VALUES('%s')", TABLE_NAME, COLUMN_NAME, id);
 
                 // a statement that allows database/webservice communication
                 Statement insertStatement
@@ -83,22 +84,24 @@ public class DatabaseManager {
 
                 // execute query
                 insertStatement.executeUpdate(sqlQuery);
-                System.out.println("id added");
+                
 
                 // clean-up                
                 insertStatement.close();
+            } catch (SQLException exception) {
+                System.out.println("duplicate id: " + id);
+                System.err.println(exception.getMessage() + " in addId");
+                System.err.println(Arrays.toString(exception.getStackTrace()));
             }
-
-        } catch (SQLException exception) {
-            System.err.println(exception.getMessage() + " in addId");
-            System.err.println(Arrays.toString(exception.getStackTrace()));
-        }
-        System.out.println("printed to database");
+        }        
+        System.out.println("done; printed to database");
         // prints out to server what ids were created
         //printData();
-        
+
     }
 
+    
+    
     /**
      * Checks a list of ids against a database to ensure that no redundancies
      * are added.
@@ -107,21 +110,22 @@ public class DatabaseManager {
      * @return - a list containing ids that already exist in database. Returns
      * an empty list of all the ids given in the param list are unique.
      */
-    public Set<String> checkId(Set<String> list) {
+    public boolean checkId(Set<Id> list) {
+        System.out.println("in checkId");
+        // a flag that'll be raised if 
+        boolean containsUniqueIds = true;
         // a list containing redundant ids
-        Set<String> redundantIdList = new HashSet();
         try {
 
             // a string to query a specific id
             String sqlQuery;
 
-            for (String id : list) {
+            for (Id id : list) {
 
                 // a string to query a specific id for existence in database
                 sqlQuery = String.format("SELECT %s FROM %2$s WHERE "
                         + "%1$s = '%3$s'", COLUMN_NAME, TABLE_NAME, id);
-
-                // a statement that allows database/webservice communication
+                
                 Statement databaseStatement
                         = DATABASE_CONNECTION.createStatement();
 
@@ -131,8 +135,12 @@ public class DatabaseManager {
 
                 // adds id to redundantIdList if it already exists in database
                 if (databaseResponse.next()) {
-                    System.out.print("redundancy list: " + id);
-                    redundantIdList.add(id);
+                    System.out.print("redundant id: " + id + " " + id.hashCode());
+                    id.setIsUnique(false);
+
+                    containsUniqueIds = false;
+                }else{
+                    id.setIsUnique(true);
                 }
 
                 // clean-up                
@@ -145,18 +153,18 @@ public class DatabaseManager {
             System.err.println(exception.getMessage() + " in checkId");
             System.err.println(Arrays.toString(exception.getStackTrace()));
         }
-        return redundantIdList;
+        return containsUniqueIds;
     }
 
     /**
-     * Using a given prefix and length, this method will count and return 
-     * the number of matching ids in the database.
-     * 
+     * Using a given prefix and length, this method will count and return the
+     * number of matching ids in the database.
+     *
      * @param prefix - given prefix
      * @param length - length of each id
      * @return - returns the number of matches
      */
-    public int checkPrefix(String prefix, int length) {
+    public long checkPrefix(String prefix, int length) {
         try {
             // create statement
             Statement databaseStatement = DATABASE_CONNECTION.createStatement();
@@ -169,22 +177,27 @@ public class DatabaseManager {
 
             System.out.println("database data: ");
             // create sql query to find all ids that match given parameters            
-            String sqlQuery = String.format("SELECT %4$s FROM %s "
-                    + "WHERE %4$s LIKE '%2$s%3$s';", 
-                    TABLE_NAME, prefix, pad, COLUMN_NAME);
+            String rowCount = "ROWCOUNT";
+            String sqlQuery = String.format("SELECT COUNT(*) AS %5$s FROM %1$s "
+                    + "WHERE %4$s LIKE '%2$s%3$s';",
+                    TABLE_NAME, prefix, pad, COLUMN_NAME, rowCount);
+            System.out.println(String.format("SELECT COUNT(*) AS %5$s FROM %1$s "
+                    + "WHERE %4$s LIKE '%2$s%3$s';",
+                    TABLE_NAME, prefix, pad, COLUMN_NAME, rowCount));
 
             // retrieve results
             ResultSet databaseResponse
                     = databaseStatement.executeQuery(sqlQuery);
-
-            // returns the size of the results (number of ids). If nothing was
-            // found by the database, 0 is returned instead. 
             if (databaseResponse.next()) {
-                return databaseResponse.getFetchSize();
+                int numId = databaseResponse.getInt(rowCount);
+                System.out.println("numId = " + numId);
+                return numId;
             } else {
+                System.out.println("returning 0");
                 return 0;
             }
 
+            
         } catch (SQLException exception) {
             System.err.println(exception.getMessage() + " in checkPrefix");
             System.err.println(Arrays.toString(exception.getStackTrace()));
@@ -203,7 +216,7 @@ public class DatabaseManager {
             Statement s = DATABASE_CONNECTION.createStatement();
             String sql = String.format("SELECT * FROM %s;", TABLE_NAME);
             ResultSet r = s.executeQuery(sql);
- 
+
             for (int i = 0; r.next(); i++) {
                 String curr = r.getString("id");
                 System.out.printf("id(%d):  %s", i, curr);
@@ -216,7 +229,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Used by an external method to close this connection. 
+     * Used by an external method to close this connection.
      */
     public synchronized void closeConnection() {
         try {
@@ -229,7 +242,7 @@ public class DatabaseManager {
     /**
      * Checks to see if the database already has a table created. This method is
      * used to prevent constant checking on whether or not the database was
-     * created along with a table. 
+     * created along with a table.
      *
      * @param c - connection to the database
      * @return - true if table exists in database, false otherwise
