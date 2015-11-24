@@ -79,7 +79,6 @@ public class DBConn {
                     Statement st = null;
                     st = conn.createStatement();
                     rs = st.executeQuery("SELECT \"strURL\" FROM \"PURL\" WHERE \"strPurl\" = '" + PURLID.toString() + "'");
-                    // get the number of rows from the result set
                 	if(rs.next()) {
                 		url = rs.getString(1);
                 	} else {
@@ -102,6 +101,54 @@ public class DBConn {
 	}
 	
 	/*
+	 * insertPURL
+	 * Input: String PURLID, String URL, String ERC, String Who, String What, String When
+	 * executes query to edit URL of corresponding PURLID, replaces with provided URL
+	 * OUTPUT: true if query was executed.  if not return false;
+	 */
+	public boolean insertPURL(String PURLID, String URL, String ERC, String Who, String What, String When) {
+		PreparedStatement pst = null;
+		ResultSet rs = null;
+	    String url = null;
+	    int numrows; //indicates how much rows have the same purlid
+	    
+	    try {
+            if(conn != null) {
+                try {
+                    Statement st = null;
+                    st = conn.createStatement();
+                    String sql = "SELECT COUNT(*) FROM \"PURL\" WHERE \"strPurl\" = '" + PURLID.toString() + "'";
+                    rs = st.executeQuery(sql);
+                    if(rs.next()) {
+                    	 numrows = Integer.parseInt(rs.getString(1));
+                    } else {
+                    	return false; //if it doesn't have the count in it, then something went wrong.
+                    }
+                    if(numrows == 0) {
+	                    sql = "INSERT INTO \"PURL\" (\"strPurl\", \"strURL\", \"strERC\", \"strWho\", \"strWhat\", \"strWhen\") Values ('" + PURLID + "','"+ URL + "','" + ERC + "','" + Who + "','" + What + "','" + When + "')";
+	                    st.executeUpdate(sql); 
+	                    return true;
+                    } else {
+                    	return false;
+                    }
+                  
+                    
+                } catch (Exception ee) {
+                    ee.printStackTrace();
+                    return false;
+                }
+            } else {
+            	System.out.println("Conn was null");
+            	return false;
+            }
+        } catch (Exception ee) {
+        	ee.printStackTrace();
+        	return false;
+            
+        }
+	}
+	
+	/*
 	 * editURL
 	 * Input: String PURLID, String URL
 	 * executes query to edit URL of corresponding PURLID, replaces with provided URL
@@ -116,10 +163,8 @@ public class DBConn {
                 try {
                     Statement st = null;
                     st = conn.createStatement();
-                    System.out.println("UPDATE \"PURL\" SET \"strURL\" = '" + URL.toString() + "' WHERE \"strPurl\" = '" + PURLID.toString() + "'");
                     st.executeUpdate("UPDATE \"PURL\" SET \"strURL\" = '" + URL + "' WHERE \"strPurl\" = '" + PURLID + "'");
                     return true;
-                    // get the number of rows from the result set
                     
                 } catch (Exception ee) {
                     ee.printStackTrace();
@@ -156,7 +201,6 @@ public class DBConn {
                     Statement st = null;
                     st = conn.createStatement();
                     rs = st.executeQuery("SELECT * FROM \"PURL\" WHERE \"strPurl\" = '" + PURLID.toString() + "'");
-                    // get the number of rows from the result set
                 	if(rs.next()) {
                 		PURL.setURL(rs.getString(2));
                 		PURL.setERC(rs.getString(3));
@@ -180,7 +224,7 @@ public class DBConn {
 		
 		return PURL;
 	}
-	
+
 }
 
 
