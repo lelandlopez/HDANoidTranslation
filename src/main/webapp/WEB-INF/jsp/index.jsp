@@ -12,24 +12,29 @@
         <pre>
         <h3>paths:</h3>
         */settings
-        */mint/#
+        */mint/amount?*
+
+        for example:
+        http://localhost:8080/MinterService/mint/10
+        http://localhost:8080/MinterService/mint/10?auto=false&charMap=ddlumedd
+        http://localhost:8080/MinterService/mint/10?auto=true&length=5&tokenType=LOWERCASE
 
         <h3>parameters for mint path:</h3>
-        boolean isAuto
-        boolean isSequential
+        boolean auto
+        boolean random
+        boolean sansVowels
         int length
         String prefix
         String prepend
         String charMap 
-        String idType
+        String tokenType
 
         <h3>char map key:</h3>
         d = digital 
         l = lowercase
         u = uppercase 
         m = mixed-case 
-        e = extended 
-        a = alpha-numeric
+        e = extended         
         
 
         Any other suggestions for this page?        
