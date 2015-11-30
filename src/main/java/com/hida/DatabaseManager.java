@@ -296,7 +296,7 @@ public class DatabaseManager extends Function {
     public long getPermutations(String prefix, boolean sansVowel, String charMap)
             throws SQLException {
         // determine the base
-        int totalPermutations = 1;
+        long totalPermutations = 1;
         for (int i = 0; i < charMap.length(); i++) {
             if (charMap.charAt(i) == 'd') {
                 totalPermutations *= 10;
@@ -352,7 +352,7 @@ public class DatabaseManager extends Function {
             databaseStatement.close();
 
             // counts the number of remaining permutations
-            System.out.println("Over numPermutations1 = " + totalPermutations);
+            System.out.println("Over numPermutations12 = " + totalPermutations);
             System.out.println("Over getformat: " + format);
             for (CachedFormat formatk : CachedFormatsList) {
                 System.out.println(formatk);
