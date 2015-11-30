@@ -9,12 +9,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A controller class that paths the user to all jsp files in WEB_INF/jsp.
@@ -24,14 +28,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 public class MinterController {
 
+    // creates a fair reentrant lock to bottle-neck access to printing pids
+    private final ReentrantLock lock = new ReentrantLock(true);
+
+    // create a database to be used to create and count number of ids
+    private final DatabaseManager DATABASE_MANAGER = new DatabaseManager();
+
+    // Logger; logfile to be stored in resource folder
+    private static final Logger LOG = LoggerFactory.getLogger(MinterController.class);
+
     // fields for minter's default values, cached values
     private final String CONFIG_FILE = "minter_config.properties";
-    private String prependedString;
-    private String prefix;
-    private String minterType;
-    private String tokenType;
-    private int length;
-    private String charMap;
 
     /**
      * Creates a path to mint ids. If parameters aren't given then printPids
@@ -48,98 +55,87 @@ public class MinterController {
     public String printPids(@PathVariable String input, ModelMap model,
             @RequestParam Map<String, String> parameters) {
 
+        lock.lock();
         // message variable to be sent to mint.jsp
+
         String message;
         try {
+
             int amount = Integer.parseInt(input);
 
             System.out.print("retrieving data...");
             // retrieve default setting
-            this.retrieveDefaultSetting();
-
-            // choose between default and given client parameters
-            this.setDefaultSetting(parameters);
-
-            // make minter object with loaded results            
-            Minter minter = new Minter(this.getCharMap(),
-                    this.getPrependedString(),
-                    amount,
-                    this.getLength(),
-                    this.getPrefix());
-
+            MinterParameter minterParameter = new MinterParameter(parameters); 
             
-            
-            if (minter.getDatabaseManager().createConnection()) {
-                if (minterType.equals("AUTO")) {
-                    
-                    message = minter.genIdAuto(tokenType);
-                } else if (minterType.equals("SEQUENTIAL")) {
-                    message = minter.genIdSequential(tokenType);
-                } else if (minterType.equals("CUSTOM")) {
-                    message = "unsupported";
-                    //message = minter.genIdCustom(tokenType);
-                } else {
-                    message = "error";
-                }
-                minter.getDatabaseManager().closeConnection();
-                model.addAttribute("message", message);
+            // create connection
+            DATABASE_MANAGER.createConnection();
+                        
+            // instantiate the correct minter and calculate remaining number of permutations
+            long remainingPermutations;
+            Minter minter;
+            if (minterParameter.isAuto()) {
+                int rootLength
+                        = minterParameter.getLength() - minterParameter.getPrefix().length();
+                minter = new Minter(DATABASE_MANAGER,
+                        minterParameter.getPrepend(),
+                        rootLength,
+                        minterParameter.getPrefix());
+                remainingPermutations
+                        = DATABASE_MANAGER.getPermutations(minterParameter.getPrefix(),
+                                minterParameter.getTokenType(),
+                                minter.getMap(minterParameter.getTokenType()),
+                                rootLength);
             } else {
+                minter = new Minter(DATABASE_MANAGER,
+                        minterParameter.getCharMap(),
+                        minterParameter.getPrepend(),
+                        minterParameter.getPrefix(),
+                        minterParameter.isSansVowels());
 
+                remainingPermutations
+                        = DATABASE_MANAGER.getPermutations(minterParameter.getPrefix(),
+                                minterParameter.isSansVowels(),
+                                minterParameter.getCharMap());
             }
 
-        } // detects number fomatting errors in input 
-        catch (NumberFormatException exception) {
-            message = String.format(
-                    "input error %s", exception.getMessage());
+            // throw an exception if the requested amount of ids can't be generated
+            if (remainingPermutations < amount) {
+                throw new NotEnoughPermutationsException(remainingPermutations, amount);
+            }
+            // have the minter create the ids and assign it to message
+            if (minterParameter.isAuto()) {
+                if (minterParameter.isRandom()) {
+                    System.out.println("making autoRandom");
+                    message = minter.genIdAutoRandom(amount, minterParameter.getTokenType());
+                } else {
+                    System.out.println("making autoSequential");
+                    message = minter.genIdAutoSequential(amount, minterParameter.getTokenType());
+                }
+            } else {
+                if (minterParameter.isRandom()) {
+                    System.out.println("making customRandom");
+                    message = minter.genIdCustomRandom(amount, minterParameter.isSansVowels());
+                } else {
+                    System.out.println("making customSequential");
+                    message = minter.genIdCustomSequential(amount, minterParameter.isSansVowels());
+                }
+            }
+            // print list of ids to screen
             model.addAttribute("message", message);
-        } // detects any unimplemented methods
-        catch (UnsupportedOperationException exception) {
-            message = String.format(
-                    "%s", exception.getMessage());
-            model.addAttribute("message", message);
-        } // used to see if values were properly retrieved from property file
-        catch (NullPointerException exception) {
-            System.out.println(String.format("prepend=%s\nprefix=%s\n"
-                    + "length=%d\ncharMap=%s\nminterType=%s\ntokenType=%s",
-                    prependedString, prefix, length, charMap,
-                    minterType, tokenType));
-            System.out.println("here, null found");
-            System.out.println(Arrays.toString(exception.getStackTrace()));
-            System.out.println("here, null found");
-        }
-        catch (TooManyPermutationsException exception){
             
+            // close the connection
+            minter.getDatabaseManager().closeConnection();
+
+            // log error messages in catch statements, call error handlers here
+        } catch (Exception exception) {
+            message = exception.getMessage();
+            model.addAttribute("message", message);
+        } finally {
+            // grants unlocks method and gives access to longest waiting thread            
+            lock.unlock();
         }
+        // return to mint.jsp
         return "mint";
-    }
-
-    /**
-     * Method that sets the fields to any given parameters. Defaults to values
-     * found in minter_config.properties file.
-     *
-     * @param parameters - list of given parameters.
-     */
-    public void setDefaultSetting(Map<String, String> parameters) {
-
-        if (parameters.containsKey("prepend")) {
-            this.setPrependedString(parameters.get("prepend"));
-        }
-        if (parameters.containsKey("prefix")) {
-            this.setPrefix(parameters.get("prefix"));
-        }
-        if (parameters.containsKey("length")) {
-            this.setLength(Integer.parseInt(parameters.get("length")));
-        }
-        if (parameters.containsKey("charMap")) {
-            this.setCharMap(parameters.get("charMap"));
-        }
-        if (parameters.containsKey("minterType")) {
-            this.minterType = parameters.get("minterType");
-        }
-        if (parameters.containsKey("tokenType")) {
-            this.setTokenType(parameters.get("tokenType"));
-        }
-
     }
 
     /**
@@ -165,21 +161,64 @@ public class MinterController {
         return "settings";
     } // end handleForm
 
-    
-    
     @ExceptionHandler({SQLException.class})
-    public String parameterErrorHandler(Map<String, String> incorrectParam){
+    public String parameterErrorHandler(Map<String, String> incorrectParam) {
         String message = "";
         final String errorMessage = "";
         return message;
     }
-            
-     /**
-     * Retrieve default settings for minter from property file.
-     */
-    private void retrieveDefaultSetting() {
-        try {
 
+    /**
+     * Produces a 400 error
+     */
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST,
+            reason = "Given prefix and length parameters "
+            + "produce too many permutations")
+    public class TooManyPermutationsException extends RuntimeException {
+
+        public TooManyPermutationsException(
+                String prefix, int length, int numIdRemaining) {
+            super(String.format(
+                    "There are %d remaining ids can be generated given "
+                    + "current prefix (%s) and length parameters (%d)",
+                    numIdRemaining, prefix, length));
+
+        }
+    }
+
+    /**
+     * A class used to store the parameters given via REST end-point /mint.
+     */
+    private class MinterParameter {
+
+        // Fields; detailed description in Minter class
+        private String Prepend;
+        private String Prefix;
+        private String TokenType;
+        private String CharMap;
+        private int Length;
+        private boolean Auto;
+        private boolean Random;
+        private boolean SansVowels;
+
+        /**
+         * Aside from receiving parameters, the constructor will load the
+         * properties file and store default values into fields. The parameters,
+         * if any, will be replace the default values in the fields.
+         *
+         * @param parameters - list of parameters given via REST end-point /mint
+         * @throws IOException - thrown whenever the configuration file cannot
+         * be found or opened
+         */
+        private MinterParameter(Map<String, String> parameters) throws IOException {
+            retrieveDefaultSetting();
+            setDefaultSettings(parameters);
+        }
+
+        /**
+         * Retrieve default settings for minter from property file.
+         */
+        private void retrieveDefaultSetting() throws IOException {
             // load property file
             Properties properties = new Properties();
 
@@ -187,83 +226,130 @@ public class MinterController {
                     getContextClassLoader().getResourceAsStream(
                             String.format("%s", CONFIG_FILE)));
 
-            // retrieve values found in minter_config.properties file
-            minterType = properties.getProperty("minterType");
+            // retrieve values found in minter_config.properties file                                
+            this.setPrepend((properties.getProperty("prepend")));
+            this.setPrefix((properties.getProperty("prefix")));
+            this.setTokenType((properties.getProperty("tokenType")));
+            this.setCharMap((properties.getProperty("charMap")));
+            this.setLength(Integer.parseInt(properties.getProperty("length")));
+            this.setAuto(Boolean.parseBoolean(properties.getProperty("auto")));
+            this.setRandom(Boolean.parseBoolean(properties.getProperty("random")));
+            this.setSansVowels(Boolean.parseBoolean(properties.getProperty("sansVowels")));
 
-            setCharMap(properties.getProperty("charMap"));
+        } // end retrieveDefaultSetting     
 
-            setTokenType(properties.getProperty("tokenType"));
+        /**
+         * Method that sets the fields to any given parameters. Defaults to
+         * values found in minter_config.properties file located in resources
+         * folder.
+         *
+         * @param parameters - list of given parameters.
+         */
+        private void setDefaultSettings(Map<String, String> parameters) {
 
-            setLength(Integer.parseInt(properties.getProperty("length")));
-
-            setPrefix(properties.getProperty("prefix"));
-
-            setPrependedString((properties.getProperty("prependedString")));
-
-        } catch (IOException exception) {
-            System.out.println(exception.getMessage());
+            if (parameters.containsKey("prepend")) {
+                this.setPrepend(parameters.get("prepend"));
+            }
+            if (parameters.containsKey("prefix")) {
+                this.setPrefix(parameters.get("prefix"));
+            }
+            if (parameters.containsKey("length")) {
+                this.setLength(Integer.parseInt(parameters.get("length")));
+            }
+            if (parameters.containsKey("charMap")) {
+                this.setCharMap(parameters.get("charMap"));
+            }
+            if (parameters.containsKey("tokenType")) {
+                this.setTokenType(parameters.get("tokenType"));
+            }
+            if (parameters.containsKey("auto")) {
+                this.setAuto(Boolean.parseBoolean(parameters.get("auto")));
+            }
+            if (parameters.containsKey("random")) {
+                this.setRandom(Boolean.parseBoolean(parameters.get("random")));
+            }
+            if (parameters.containsKey("sansVowels")) {
+                this.setSansVowels(Boolean.parseBoolean(parameters.get("sansVowels")));
+            }
         }
-    } // end retrieveDefaultSetting
-    
-    
-    /**
-     * Produces a 400 error
-     */
-    @ResponseStatus(value=HttpStatus.BAD_REQUEST, 
-            reason="Given prefix and length parameters "
-                    + "produce too many permutations")  
-    public class TooManyPermutationsException extends RuntimeException {
-        
-        
-        public TooManyPermutationsException(
-                String prefix, int length, int numIdRemaining){
-            super(String.format(
-                    "There are %d remaining ids can be generated given "
-                    + "current prefix (%s) and length parameters (%d)",
-                    numIdRemaining, prefix, length));
-            
+
+        /* getters and setters */
+        public String getPrepend() {
+            return Prepend;
         }
-    }
 
-    /* typical getter and setter methods */
-    public String getPrependedString() {
-        return prependedString;
-    }
+        public void setPrepend(String Prepend) {
+            this.Prepend = Prepend;
+        }
 
-    public void setPrependedString(String prependedString) {
-        this.prependedString = prependedString;
-    }
+        public String getPrefix() {
+            return Prefix;
+        }
 
-    public String getPrefix() {
-        return prefix;
-    }
+        public void setPrefix(String Prefix) {
+            this.Prefix = Prefix;
+        }
 
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
+        public String getTokenType() {
+            return TokenType;
+        }
 
-    public String getTokenType() {
-        return tokenType;
-    }
+        public void setTokenType(String TokenType) {
+            this.TokenType = TokenType;
+        }
 
-    public void setTokenType(String idType) {
-        this.tokenType = idType;
-    }
+        public String getCharMap() {
+            return CharMap;
+        }
 
-    public int getLength() {
-        return length;
-    }
+        public void setCharMap(String CharMap) {
+            this.CharMap = CharMap;
+        }
 
-    public void setLength(int length) {
-        this.length = length;
-    }
+        public int getLength() {
+            return Length;
+        }
 
-    public String getCharMap() {
-        return charMap;
-    }
+        public void setLength(int Length) {
+            this.Length = Length;
+        }
 
-    public void setCharMap(String charMap) {
-        this.charMap = charMap;
+        public boolean isAuto() {
+            return Auto;
+        }
+
+        public void setAuto(boolean Auto) {
+            this.Auto = Auto;
+        }
+
+        public boolean isRandom() {
+            return Random;
+        }
+
+        public void setRandom(boolean Random) {
+            this.Random = Random;
+        }
+
+        public boolean isSansVowels() {
+            return SansVowels;
+        }
+
+        public void setSansVowels(boolean SansVowels) {
+            this.SansVowels = SansVowels;
+        }
+
+        /**
+         * Used for testing; subject to deletion.
+         *
+         * @return
+         */
+        @Override
+        public String toString() {
+            return String.format("prepend=%s\nprefix=%s\ntokenType=%s\nlength=%d\ncharMap=%s"
+                    + "\nauto=%b\nrandom=%b\nsans%b",
+                    Prepend, Prefix, TokenType, Length, CharMap, Auto, Random, SansVowels);
+        }
+
     }
 
 } // end class
