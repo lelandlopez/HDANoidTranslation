@@ -1,11 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+  <Appenders>
+    <!-- By default => console -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+    </Console>
+  </Appenders>
+
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="Console"/>
+    </Root>
+  </Loggers>
+</Configuration>
+<!--
+<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 	<file>MinterServiceLog.log</file>
-    <encoder class="ch.qos.logback.classic.PatternLayout">
+    <layout class="ch.qos.logback.classic.PatternLayout">
       <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
-    </encoder>
+    </layout>
   </appender>
   
   <logger name="com.hida" level="TRACE"/>
@@ -16,3 +33,4 @@
 	<appender-ref ref="FILE" />
   </root>
 </configuration>
+-->

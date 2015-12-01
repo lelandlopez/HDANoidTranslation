@@ -57,12 +57,13 @@ public class MinterController {
 
         lock.lock();
         // message variable to be sent to mint.jsp
-
+               
         String message;
         try {
 
             int amount = Integer.parseInt(input);
 
+            //LOG.info("retrieving data...");
             System.out.print("retrieving data...");
             // retrieve default setting
             MinterParameter minterParameter = new MinterParameter(parameters); 
@@ -73,18 +74,18 @@ public class MinterController {
             // instantiate the correct minter and calculate remaining number of permutations
             long remainingPermutations;
             Minter minter;
-            if (minterParameter.isAuto()) {
-                int rootLength
-                        = minterParameter.getLength() - minterParameter.getPrefix().length();
+            if (minterParameter.isAuto()) {                
                 minter = new Minter(DATABASE_MANAGER,
                         minterParameter.getPrepend(),
-                        rootLength,
-                        minterParameter.getPrefix());
+                        minterParameter.getRootLength(),
+                        minterParameter.getPrefix(),
+                        minterParameter.isSansVowels());
                 remainingPermutations
                         = DATABASE_MANAGER.getPermutations(minterParameter.getPrefix(),
                                 minterParameter.getTokenType(),
-                                minter.getMap(minterParameter.getTokenType()),
-                                rootLength);
+                                minter.getBaseMap().get(minterParameter.getTokenType()),
+                                minterParameter.getRootLength(),
+                                minterParameter.isSansVowels());
             } else {
                 minter = new Minter(DATABASE_MANAGER,
                         minterParameter.getCharMap(),
@@ -114,10 +115,10 @@ public class MinterController {
             } else {
                 if (minterParameter.isRandom()) {
                     System.out.println("making customRandom");
-                    message = minter.genIdCustomRandom(amount, minterParameter.isSansVowels());
+                    message = minter.genIdCustomRandom(amount);
                 } else {
                     System.out.println("making customSequential");
-                    message = minter.genIdCustomSequential(amount, minterParameter.isSansVowels());
+                    message = minter.genIdCustomSequential(amount);
                 }
             }
             // print list of ids to screen
@@ -196,7 +197,7 @@ public class MinterController {
         private String Prefix;
         private String TokenType;
         private String CharMap;
-        private int Length;
+        private int RootLength;
         private boolean Auto;
         private boolean Random;
         private boolean SansVowels;
@@ -231,7 +232,7 @@ public class MinterController {
             this.setPrefix((properties.getProperty("prefix")));
             this.setTokenType((properties.getProperty("tokenType")));
             this.setCharMap((properties.getProperty("charMap")));
-            this.setLength(Integer.parseInt(properties.getProperty("length")));
+            this.setRootLength(Integer.parseInt(properties.getProperty("length")));
             this.setAuto(Boolean.parseBoolean(properties.getProperty("auto")));
             this.setRandom(Boolean.parseBoolean(properties.getProperty("random")));
             this.setSansVowels(Boolean.parseBoolean(properties.getProperty("sansVowels")));
@@ -253,8 +254,8 @@ public class MinterController {
             if (parameters.containsKey("prefix")) {
                 this.setPrefix(parameters.get("prefix"));
             }
-            if (parameters.containsKey("length")) {
-                this.setLength(Integer.parseInt(parameters.get("length")));
+            if (parameters.containsKey("rootLength")) {
+                this.setRootLength(Integer.parseInt(parameters.get("rootLength")));
             }
             if (parameters.containsKey("charMap")) {
                 this.setCharMap(parameters.get("charMap"));
@@ -306,12 +307,12 @@ public class MinterController {
             this.CharMap = CharMap;
         }
 
-        public int getLength() {
-            return Length;
+        public int getRootLength() {
+            return RootLength;
         }
 
-        public void setLength(int Length) {
-            this.Length = Length;
+        public void setRootLength(int RootLength) {
+            this.RootLength = RootLength;
         }
 
         public boolean isAuto() {
@@ -347,7 +348,7 @@ public class MinterController {
         public String toString() {
             return String.format("prepend=%s\nprefix=%s\ntokenType=%s\nlength=%d\ncharMap=%s"
                     + "\nauto=%b\nrandom=%b\nsans%b",
-                    Prepend, Prefix, TokenType, Length, CharMap, Auto, Random, SansVowels);
+                    Prepend, Prefix, TokenType, RootLength, CharMap, Auto, Random, SansVowels);
         }
 
     }
