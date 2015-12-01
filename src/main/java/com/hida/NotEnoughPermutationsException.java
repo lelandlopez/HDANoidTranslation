@@ -12,13 +12,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  * @author lruffin
  */
-@ResponseStatus(value=HttpStatus.BAD_REQUEST, reason="Requested amount exceeds possible number "
-        + "of permutations")  
+@ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "Requested amount exceeds possible number "
+        + "of permutations")
 public class NotEnoughPermutationsException extends RuntimeException {
+
     private long RemainingPermutations;
     private long RequestedAmount;
-    
-    public NotEnoughPermutationsException(long remaining, long requested){
+
+    public NotEnoughPermutationsException(long remaining, long requested) {
         this.RemainingPermutations = remaining;
         this.RequestedAmount = requested;
     }
@@ -39,9 +40,10 @@ public class NotEnoughPermutationsException extends RuntimeException {
     public NotEnoughPermutationsException(String msg) {
         super(msg);
     }
-    
+
     @Override
-    public String getMessage(){
-        return String.format("expected %d, have %d", RequestedAmount, RemainingPermutations);
+    public String getMessage() {
+        return String.format("%d ids were requested but only %d can be created using given format",
+                RequestedAmount, RemainingPermutations);
     }
 }

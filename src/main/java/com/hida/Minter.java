@@ -445,31 +445,7 @@ public class Minter {
         return jsonString;
     }
 
-    public static String errorToJson(String code, String message) {
-        // Jackson objects to create formatted Json string
-        String jsonString = "";
-        ObjectMapper mapper = new ObjectMapper();
-        Object formattedJson;
-
-        try {
-            // Object used to iterate through list of ids
-
-            // map desired Json format
-            String id = String.format(
-                    "{\"status\":%s,\"name\":\"%s\"}", code, message);
-
-            formattedJson = mapper.readValue(id, Object.class);
-
-            // append formatted json
-            jsonString += mapper.writerWithDefaultPrettyPrinter().
-                    writeValueAsString(formattedJson) + "\n";
-
-        } catch (IOException exception) {
-            System.err.println(exception.getMessage());
-        }
-
-        return jsonString;
-    }
+    
 
 
     /* typical getter and setter methods */
