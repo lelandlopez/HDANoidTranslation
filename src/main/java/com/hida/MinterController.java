@@ -19,6 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.locks.ReentrantLock;
+import javax.servlet.http.HttpServletRequest;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.springframework.web.servlet.ModelAndView;
 
 /**
  * A controller class that paths the user to all jsp files in WEB_INF/jsp.
@@ -53,11 +56,12 @@ public class MinterController {
     @RequestMapping(value = {"/mint/{input}"},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String printPids(@PathVariable String input, ModelMap model,
-            @RequestParam Map<String, String> parameters) {
+            @RequestParam Map<String, String> parameters) 
+            throws SQLException, IOException, ClassNotFoundException, Exception{
 
         lock.lock();
         // message variable to be sent to mint.jsp
-               
+
         String message;
         try {
 
@@ -66,15 +70,15 @@ public class MinterController {
             //LOG.info("retrieving data...");
             System.out.print("retrieving data...");
             // retrieve default setting
-            MinterParameter minterParameter = new MinterParameter(parameters); 
-            
+            MinterParameter minterParameter = new MinterParameter(parameters);
+
             // create connection
             DATABASE_MANAGER.createConnection();
-                        
+
             // instantiate the correct minter and calculate remaining number of permutations
             long remainingPermutations;
             Minter minter;
-            if (minterParameter.isAuto()) {                
+            if (minterParameter.isAuto()) {
                 minter = new Minter(DATABASE_MANAGER,
                         minterParameter.getPrepend(),
                         minterParameter.getRootLength(),
@@ -123,14 +127,11 @@ public class MinterController {
             }
             // print list of ids to screen
             model.addAttribute("message", message);
-            
+
             // close the connection
             minter.getDatabaseManager().closeConnection();
 
             // log error messages in catch statements, call error handlers here
-        } catch (Exception exception) {
-            message = exception.getMessage();
-            model.addAttribute("message", message);
         } finally {
             // grants unlocks method and gives access to longest waiting thread            
             lock.unlock();
@@ -162,29 +163,58 @@ public class MinterController {
         return "settings";
     } // end handleForm
 
-    @ExceptionHandler({SQLException.class})
-    public String parameterErrorHandler(Map<String, String> incorrectParam) {
-        String message = "";
-        final String errorMessage = "";
-        return message;
+
+    @ExceptionHandler(NotEnoughPermutationsException.class)
+    public ModelAndView handlePermutationError(HttpServletRequest req, Exception exception) {
+        //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
+
+        ModelAndView mav = new ModelAndView();
+        mav.addObject("status", 400);
+        mav.addObject("exception", exception.getClass().getSimpleName());
+        mav.addObject("message", exception.getMessage());
+        
+        mav.setViewName("error");        
+        return mav;
+    }
+    
+    
+    @ExceptionHandler(Exception.class)
+    public ModelAndView handleGeneralError(HttpServletRequest req, Exception exception) {
+        //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
+
+        ModelAndView mav = new ModelAndView();
+        mav.addObject("status", 500);
+        mav.addObject("exception", exception.getClass());
+        mav.addObject("message", exception.getMessage());
+        
+        mav.setViewName("error");        
+        return mav;
     }
 
-    /**
-     * Produces a 400 error
-     */
-    @ResponseStatus(value = HttpStatus.BAD_REQUEST,
-            reason = "Given prefix and length parameters "
-            + "produce too many permutations")
-    public class TooManyPermutationsException extends RuntimeException {
+    private static String errorToJson(String code, String message) {
+        // Jackson objects to create formatted Json string
+        String jsonString = "";
+        ObjectMapper mapper = new ObjectMapper();
+        Object formattedJson;
 
-        public TooManyPermutationsException(
-                String prefix, int length, int numIdRemaining) {
-            super(String.format(
-                    "There are %d remaining ids can be generated given "
-                    + "current prefix (%s) and length parameters (%d)",
-                    numIdRemaining, prefix, length));
+        try {
+            // Object used to iterate through list of ids
 
+            // map desired Json format
+            String id = String.format(
+                    "{\"status\":%s,\"name\":\"%s\"}", code, message);
+
+            formattedJson = mapper.readValue(id, Object.class);
+
+            // append formatted json
+            jsonString += mapper.writerWithDefaultPrettyPrinter().
+                    writeValueAsString(formattedJson) + "\n";
+
+        } catch (IOException exception) {
+            System.err.println(exception.getMessage());
         }
+
+        return jsonString;
     }
 
     /**
