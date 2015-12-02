@@ -29,7 +29,7 @@ public abstract class Id implements Comparable<Id> {
      * Copy constructor; primarily used to copy values of the BaseMap from one
      * Id to another.
      *
-     * @param id - The Id to copy from.
+     * @param id The Id to copy from.
      */
     public Id(Id id) {
         this.Prefix = id.Prefix;
@@ -66,8 +66,8 @@ public abstract class Id implements Comparable<Id> {
     /**
      * Overridden so that id's can be identified solely by its baseName.
      *
-     * @param obj - the Object this id is being compared to
-     * @return - true if the two Objects are the same.
+     * @param obj the Object this id is being compared to
+     * @return true if the two Objects are the same.
      */
     @Override
     public boolean equals(Object obj) {
@@ -87,7 +87,7 @@ public abstract class Id implements Comparable<Id> {
      * conjunction with TokenMap to return the string representation of this
      * id's name in its toString method.
      *
-     * @return - The array used to create the name
+     * @return The array used to create the name
      */
     public int[] getBaseMap() {
         return BaseMap;
@@ -102,7 +102,7 @@ public abstract class Id implements Comparable<Id> {
      * Sets. The length of the array must be equal to TokenMap, otherwise an
      * IndexOutOfBounds error will be thrown in the getRootName method.
      *
-     * @param baseMap - The new array to replace the name.
+     * @param baseMap The new array to replace the name.
      */
     public void setBaseMap(int[] baseMap) {
         this.BaseMap = baseMap;
@@ -142,8 +142,8 @@ public abstract class Id implements Comparable<Id> {
      * invoked, the two id's will be compared by their arrays as they represent
      * the names.
      *
-     * @param t - second Id being compared.
-     * @return - used to sort values in descending order.
+     * @param t second Id being compared.
+     * @return used to sort values in descending order.
      */
     @Override
     public int compareTo(Id t) {

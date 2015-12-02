@@ -85,12 +85,12 @@ public class Minter {
     /**
      * Constructor for AutoMinters
      *
-     * @param DatabaseManager - Used to add and check ids against database.
-     * @param Prepend - Designates the format of the id. Will not appear in
+     * @param DatabaseManager Used to add and check ids against database.
+     * @param Prepend Designates the format of the id. Will not appear in
      * database.
-     * @param RootLength - Designates the length of the id's root
-     * @param Prefix - The string that will be at the front of every id
-     * @param sansVowel - Designates whether or not the id's root contains
+     * @param RootLength Designates the length of the id's root
+     * @param Prefix The string that will be at the front of every id
+     * @param sansVowel Designates whether or not the id's root contains
      * vowels. If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
      */
@@ -125,13 +125,13 @@ public class Minter {
     /**
      * Constructor for CustomMinters
      *
-     * @param DatabaseManager - Used to add and check ids against database.
-     * @param CharMap - The mapping used to describe range of possible
+     * @param DatabaseManager Used to add and check ids against database.
+     * @param CharMap The mapping used to describe range of possible
      * characters at each of the id's root's digits
-     * @param Prepend - Designates the format of the id. Will not appear in
+     * @param Prepend Designates the format of the id. Will not appear in
      * database.
-     * @param Prefix - The string that will be at the front of every id
-     * @param sansVowel - Designates whether or not the id's root contains
+     * @param Prefix The string that will be at the front of every id
+     * @param sansVowel Designates whether or not the id's root contains
      * vowels. If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
      */
@@ -162,11 +162,11 @@ public class Minter {
      * Continuously increments a set of ids until the set is completely filled
      * with unique ids.
      *
-     * @param original - the original set of ds
-     * @param order - determines whether or not the ids will be ordered
-     * @param isAuto - determines whether or not the ids are AutoId or CustomId
-     * @param amount - the amount of ids to be created.
-     * @return - A set of unique ids
+     * @param original the original set of ds
+     * @param order determines whether or not the ids will be ordered
+     * @param isAuto determines whether or not the ids are AutoId or CustomId
+     * @param amount the amount of ids to be created.
+     * @return A set of unique ids
      * @throws SQLException - thrown whenever there is an error with the
      * database.
      */
@@ -228,9 +228,9 @@ public class Minter {
      * MIXED_EXTENDED: All characters specified by previous tokens
      * </pre>
      *
-     * @param amount -the amount of ids to create
-     * @param token - Designates what characters are contained in the id's root
-     * @return - a JSON list of unique ids.
+     * @param amount the amount of ids to create
+     * @param token Designates what characters are contained in the id's root
+     * @return a JSON list of unique ids.
      * @throws SQLException - thrown whenever there is an error with the
      * database
      * @throws java.io.IOException
@@ -278,10 +278,10 @@ public class Minter {
      * MIXED_EXTENDED: All characters specified by previous tokens
      * </pre>
      *
-     * @param amount - amount of ids to create
-     * @param token - Designates what characters are contained in the id's root
-     * @return - a JSON list of unique ids.
-     * @throws SQLException - thrown whenever there is an error with the
+     * @param amount amount of ids to create
+     * @param token Designates what characters are contained in the id's root
+     * @return a JSON list of unique ids.
+     * @throws SQLException thrown whenever there is an error with the
      * database
      * @throws java.io.IOException
      */
@@ -325,9 +325,9 @@ public class Minter {
      * e: any valid character specified by d, l, u, and m.
      * </pre>
      *
-     * @param amount - amount of ids to create
-     * @return - a JSON list of unique ids.
-     * @throws SQLException - thrown whenever there is an error with the
+     * @param amount amount of ids to create
+     * @return a JSON list of unique ids.
+     * @throws SQLException thrown whenever there is an error with the
      * database
      * @throws java.io.IOException
      */
@@ -371,9 +371,9 @@ public class Minter {
      * e: any valid character specified by d, l, u, and m.
      * </pre>
      *
-     * @param amount - amount of ids to create
-     * @return - a JSON list of unique ids.
-     * @throws SQLException - thrown whenever there is an error with the
+     * @param amount amount of ids to create
+     * @return a JSON list of unique ids.
+     * @throws SQLException thrown whenever there is an error with the
      * database
      * @throws java.io.IOException
      */
@@ -419,7 +419,7 @@ public class Minter {
     /**
      * Creates a Json object based off a list of ids given in the parameter
      *
-     * @return - A reference to a String that contains Json list of ids
+     * @return A reference to a String that contains Json list of ids
      */
     private String convertListToJson(Set<Id> list) throws IOException {
         // Jackson objects to create formatted Json string
