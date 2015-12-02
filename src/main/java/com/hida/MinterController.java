@@ -47,11 +47,11 @@ public class MinterController {
      * Creates a path to mint ids. If parameters aren't given then printPids
      * will resort to using the default values found in minter_config.properties
      *
-     * @param input - requested number of ids to mint
-     * @param model - serves as a holder for the model so that attributes can be
+     * @param input requested number of ids to mint
+     * @param model serves as a holder for the model so that attributes can be
      * added.
-     * @param parameters - parameters given by user to instill variety in ids
-     * @return - paths user to mint.jsp
+     * @param parameters parameters given by user to instill variety in ids
+     * @return paths user to mint.jsp
      */
     @RequestMapping(value = {"/mint/{input}"},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
@@ -237,8 +237,8 @@ public class MinterController {
          * properties file and store default values into fields. The parameters,
          * if any, will be replace the default values in the fields.
          *
-         * @param parameters - list of parameters given via REST end-point /mint
-         * @throws IOException - thrown whenever the configuration file cannot
+         * @param parameters list of parameters given via REST end-point /mint
+         * @throws IOException thrown whenever the configuration file cannot
          * be found or opened
          */
         private MinterParameter(Map<String, String> parameters) throws IOException {
@@ -274,7 +274,7 @@ public class MinterController {
          * values found in minter_config.properties file located in resources
          * folder.
          *
-         * @param parameters - list of given parameters.
+         * @param parameters list of given parameters.
          */
         private void setDefaultSettings(Map<String, String> parameters) {
 

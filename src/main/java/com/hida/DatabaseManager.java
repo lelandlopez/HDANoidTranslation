@@ -67,11 +67,11 @@ public class DatabaseManager extends Function {
      * Upon connecting to the database, the method will try to detect whether or
      * not a table exists. A table is created if it does not already exists.
      *
-     * @return - true if connection and table creation was successful, false
+     * @return true if connection and table creation was successful, false
      * otherwise
-     * @throws ClassNotFoundException - thrown whenever the JDBC driver is not
+     * @throws ClassNotFoundException thrown whenever the JDBC driver is not
      * found
-     * @throws SQLException - thrown whenever there is an error with the
+     * @throws SQLException thrown whenever there is an error with the
      * database
      */
     public synchronized boolean createConnection() throws ClassNotFoundException, SQLException {
@@ -116,9 +116,9 @@ public class DatabaseManager extends Function {
      * index 6 = MIXED_EXTENDED
      * </pre>
      *
-     * @param format - the cached format.
-     * @param idName - the name of the id.
-     * @param tokenIndexArray - the array who's values will be incremented.
+     * @param format the cached format.
+     * @param idName the name of the id.
+     * @param tokenIndexArray the array who's values will be incremented.
      */
     private void incrementMatchingFormats(CachedFormat format, String idName, int[] tokenIndexArray) {
         /*
@@ -168,9 +168,9 @@ public class DatabaseManager extends Function {
      * formats are considered to be similar when they have the same RootLength,
      * SansVowel, and Prefix values.
      *
-     * @param baseFormat - the format that all formats in CachedFormatsList will
+     * @param baseFormat the format that all formats in CachedFormatsList will
      * be matched against.
-     * @param tokenIndexArray - the array that specifies which formats, based on
+     * @param tokenIndexArray the array that specifies which formats, based on
      * their tokenTypes, will have their AmountCreated value increased.
      */
     private void updateFormats(CachedFormat baseFormat, int[] tokenIndexArray) {
@@ -207,7 +207,7 @@ public class DatabaseManager extends Function {
     /**
      * Adds a requested amount of formatted ids to the database.
      *
-     * @param list - list of ids to check.
+     * @param list list of ids to check.
      * @throws java.sql.SQLException
      */
     public synchronized void addId(Set<Id> list) throws SQLException {
@@ -251,8 +251,8 @@ public class DatabaseManager extends Function {
      * Checks a list of ids against a database to ensure that no redundancies
      * are added.
      *
-     * @param list - list of ids to check.
-     * @return - a list containing ids that already exist in database. Returns
+     * @param list list of ids to check.
+     * @return a list containing ids that already exist in database. Returns
      * an empty list of all the ids given in the param list are unique.
      * @throws java.sql.SQLException
      */
@@ -299,10 +299,10 @@ public class DatabaseManager extends Function {
      * Otherwise assign formatIndex to -1, a sentinel value that specifies that
      * a format was not found.
      *
-     * @param prefix - The string that will be at the front of every id
-     * @param token - Designates what characters are contained in the id's root
-     * @param rootLength - Designates the length of the id's root
-     * @param sansVowel - Designates whether or not the id's root contains
+     * @param prefix The string that will be at the front of every id
+     * @param token Designates what characters are contained in the id's root
+     * @param rootLength Designates the length of the id's root
+     * @param sansVowel Designates whether or not the id's root contains
      * vowels. If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
      */
@@ -326,7 +326,7 @@ public class DatabaseManager extends Function {
      * For any valid token, a regular expression is returned that'll match that
      * token's mapping.
      *
-     * @param token - Designates what characters are contained in the id's root
+     * @param token Designates what characters are contained in the id's root
      * @return a regular expression
      */
     private String retrieveRegex(String token, boolean sansVowel) {
@@ -366,17 +366,17 @@ public class DatabaseManager extends Function {
      * Once a format exists the database will calculate the remaining number of
      * permuations that can be created using the given parameters
      *
-     * @param prefix - The string that will be at the front of every id
-     * @param token - Designates what characters are contained in the id's root
-     * @param tokenMap - Designates the range of possible characters that can
+     * @param prefix The string that will be at the front of every id
+     * @param token Designates what characters are contained in the id's root
+     * @param tokenMap Designates the range of possible characters that can
      * exist in the id's root.
-     * @param rootLength - Designates the length of the id's root
-     * @param sansVowel - Designates whether or not the id's root contains
+     * @param rootLength Designates the length of the id's root
+     * @param sansVowel Designates whether or not the id's root contains
      * vowels. If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
-     * @return - the number of possible permutations that can be added to the
+     * @return the number of possible permutations that can be added to the
      * database with the given parameters
-     * @throws SQLException - thrown whenever there is an error with the
+     * @throws SQLException thrown whenever there is an error with the
      * database
      */
     public long getPermutations(String prefix, String token, String tokenMap, int rootLength,
@@ -440,15 +440,15 @@ public class DatabaseManager extends Function {
      * Once a format exists the database will calculate the remaining number of
      * permuations that can be created using the given parameters
      *
-     * @param prefix - The string that will be at the front of every id
-     * @param sansVowel - Designates whether or not the id's root contains
+     * @param prefix The string that will be at the front of every id
+     * @param sansVowel Designates whether or not the id's root contains
      * vowels. If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
-     * @param charMap - The mapping used to describe range of possible
+     * @param charMap The mapping used to describe range of possible
      * characters at each of the id's root's digits
-     * @return - the number of possible permutations that can be added to the
+     * @return the number of possible permutations that can be added to the
      * database with the given parameters
-     * @throws SQLException - thrown whenever there is an error with the
+     * @throws SQLException thrown whenever there is an error with the
      * database
      */
     public long getPermutations(String prefix, boolean sansVowel, String charMap)
@@ -530,10 +530,10 @@ public class DatabaseManager extends Function {
      * sansVowel. SansVowel acts as a toggle between regular expressions that
      * include or excludes vowels.
      *
-     * @param sansVowel - Designates whether or not the id's root contains
+     * @param sansVowel Designates whether or not the id's root contains
      * vowels. If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
-     * @param charMap - The mapping used to describe range of possible
+     * @param charMap The mapping used to describe range of possible
      * characters at each of the id's root's digits
      * @return the regular expression
      */
@@ -567,9 +567,9 @@ public class DatabaseManager extends Function {
     /**
      * This method returns an equivalent token for any given charMap
      *
-     * @param charMap - The mapping used to describe range of possible
+     * @param charMap The mapping used to describe range of possible
      * characters at each of the id's root's digits
-     * @return - the token equivalent to the charMap
+     * @return the token equivalent to the charMap
      */
     private String getToken(String charMap) {
 
@@ -607,7 +607,7 @@ public class DatabaseManager extends Function {
     /**
      * Prints a list of ids to the server. Strictly used for error checking.
      *
-     * @throws SQLException - thrown whenever there is an error with the
+     * @throws SQLException thrown whenever there is an error with the
      * database
      */
     private void printData() throws SQLException {
@@ -626,7 +626,7 @@ public class DatabaseManager extends Function {
     /**
      * Used by an external method to close this connection.
      *
-     * @throws SQLException - thrown whenever there is an error with the
+     * @throws SQLException thrown whenever there is an error with the
      * database
      */
     public synchronized void closeConnection() throws SQLException {
@@ -638,9 +638,9 @@ public class DatabaseManager extends Function {
      * used to prevent constant checking on whether or not the database was
      * created along with a table.
      *
-     * @param c - connection to the database
-     * @return - true if table exists in database, false otherwise
-     * @throws SQLException - thrown whenever there is an error with the
+     * @param c connection to the database
+     * @return true if table exists in database, false otherwise
+     * @throws SQLException thrown whenever there is an error with the
      * database
      */
     private boolean isDbSetup() throws SQLException {
@@ -670,7 +670,7 @@ public class DatabaseManager extends Function {
      * Creates a method to allow a database connection to use regular
      * expressions.
      *
-     * @throws SQLException - thrown whenever there is an error with the
+     * @throws SQLException thrown whenever there is an error with the
      * database
      */
     @Override
@@ -702,11 +702,11 @@ public class DatabaseManager extends Function {
          * Create a CachedFormat to store the formats of a specific kind of id.
          * Each format will differ based on the parameters given below.
          *
-         * @param prefix - The string that will be at the front of every id
-         * @param token - Designates what characters are contained in the id's
+         * @param prefix The string that will be at the front of every id
+         * @param token Designates what characters are contained in the id's
          * root
-         * @param rootLength - Designates the length of the id's root
-         * @param sansVowel - Designates whether or not the id's root contains
+         * @param rootLength Designates the length of the id's root
+         * @param sansVowel Designates whether or not the id's root contains
          * vowels. If the root does not contain vowels, the sansVowel is true;
          * false otherwise.
          */
@@ -721,8 +721,8 @@ public class DatabaseManager extends Function {
         /**
          * Adds the amount to AmountCreated.
          *
-         * @param amount - the amount of ids to add
-         * @return - true if successful
+         * @param amount the amount of ids to add
+         * @return true if successful
          */
         public boolean addAmount(long amount) {
             AmountCreated += amount;
