@@ -135,7 +135,7 @@ public class Minter {
      * vowels. If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
      */
-    public Minter(DatabaseManager DatabaseManager, String CharMap, String Prepend, String Prefix,
+    public Minter(DatabaseManager DatabaseManager, String Prepend, String CharMap, String Prefix,
             boolean sansVowel) {
         this.DatabaseManager = DatabaseManager;
         this.CharMap = CharMap;
@@ -175,8 +175,9 @@ public class Minter {
         Set<Id> duplicateCache = new HashSet(amount);
         duplicateCache.addAll(original);
 
+        int falseCounter = 0;
         // finds a list of ids that is unique to the database            
-        while (!DatabaseManager.checkId(original)) {
+        while (!DatabaseManager.isIdListUnique(original)) {
             // create iterator for tempIdList
             Iterator<Id> tempListIter = original.iterator();
 
@@ -188,7 +189,7 @@ public class Minter {
             } else {
                 newTempList = new LinkedHashSet(amount);
             }
-
+System.out.println("there");
             // iterates through tempIdList and adds unique and potentially unique 
             // values to newTempList
             while (tempListIter.hasNext()) {
@@ -198,13 +199,14 @@ public class Minter {
                 } else {
                     currentId = new CustomId((CustomId) tempListIter.next());
                 }
-
+                System.out.println("here");
                 System.out.println(currentId + " is " + currentId.isUnique());
                 while (!currentId.isUnique() && !duplicateCache.add(currentId)) {
                     currentId.incrementId();
                     System.out.println("\tnew id = " + currentId);
                 }
 
+                // a potentially unique id was found
                 if (!newTempList.contains(currentId)) {
                     newTempList.add(currentId);
                 }
@@ -240,7 +242,6 @@ public class Minter {
         // checks to see if its possible to produce or add requested amount of
         // ids to database
         String tokenMap = BaseMap.get(token);
-        System.out.println("tokenmap = " + tokenMap);
 
         Random rng = new Random();
         Set<Id> tempIdList = new LinkedHashSet(amount);
@@ -258,7 +259,7 @@ public class Minter {
         }
         // Ensure that the ids are unique against the database
         tempIdList = rollIds(tempIdList, false, true, amount);
-        DatabaseManager.addId(tempIdList);
+        DatabaseManager.addIdList(tempIdList);
 
         return convertListToJson(tempIdList);
 
@@ -289,7 +290,6 @@ public class Minter {
         // checks to see if its possible to produce or add requested amount of
         // ids to database
         String tokenMap = BaseMap.get(token);
-        System.out.println("tokenmap = " + tokenMap);
 
         Set<Id> tempIdList = new TreeSet();
 
@@ -309,7 +309,7 @@ public class Minter {
         // Ensure that the ids are unique against the database
         tempIdList = rollIds(tempIdList, true, true, amount);
 
-        DatabaseManager.addId(tempIdList);
+        DatabaseManager.addIdList(tempIdList);
 
         return convertListToJson(tempIdList);
     }
@@ -334,11 +334,7 @@ public class Minter {
     public String genIdCustomRandom(int amount) throws SQLException, IOException {
 
         String[] tokenMapArray = getBaseCharMapping();
-
-        System.out.println("in genIdCustomRandom");
-        for (String s : tokenMapArray) {
-            System.out.println(s);
-        }
+        
         Random rng = new Random();
         Set<Id> tempIdList = new LinkedHashSet(amount);
 
@@ -355,7 +351,7 @@ public class Minter {
         }
         // Ensure that the ids are unique against the database
         tempIdList = rollIds(tempIdList, false, false, amount);
-        DatabaseManager.addId(tempIdList);
+        DatabaseManager.addIdList(tempIdList);
 
         return convertListToJson(tempIdList);
     }
@@ -381,10 +377,7 @@ public class Minter {
         // checks to see if its possible to produce or add requested amount of
         // ids to database
         String[] tokenMapArray = getBaseCharMapping();
-        System.out.println("in genIdCustomSequential");
-        for (String s : tokenMapArray) {
-            System.out.println(s);
-        }
+        
         Set<Id> tempIdList = new TreeSet();
 
         int[] previousIdBaseMap = new int[RootLength];
@@ -399,8 +392,8 @@ public class Minter {
             firstId = new CustomId(currentId);
         }
         // Ensure that the ids are unique against the database
-        tempIdList = rollIds(tempIdList, false, false, amount);
-        DatabaseManager.addId(tempIdList);
+        tempIdList = rollIds(tempIdList, true, false, amount);
+        DatabaseManager.addIdList(tempIdList);
 
         return convertListToJson(tempIdList);
     }

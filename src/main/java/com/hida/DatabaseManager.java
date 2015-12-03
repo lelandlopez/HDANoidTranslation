@@ -1,5 +1,7 @@
 package com.hida;
 
+import java.io.File;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -31,7 +33,7 @@ public class DatabaseManager extends Function {
     /**
      * A connection to a database
      */
-    private Connection DATABASE_CONNECTION;
+    private Connection DatabaseConnection;
 
     /**
      * The JDBC driver which also specifies the location of the database. If the
@@ -39,7 +41,7 @@ public class DatabaseManager extends Function {
      * <p />
      * ex: "jdbc:sqlite:[path].db"
      */
-    private final String DRIVER = "jdbc:sqlite:PID.db";
+    private final String DRIVER;// = "jdbc:sqlite:";
 
     /**
      * Set to false by default, the flag is raised (set to true) when the table
@@ -49,17 +51,51 @@ public class DatabaseManager extends Function {
     private boolean isTableCreatedFlag = false;
 
     /**
-     * Set to -1 by default, the formatIndex is used to store the index of a
+     * Set to -1 by default, the FormatIndex is used to store the index of a
      * sought-after CachedFormat. The value -1 is a sentinel and it designates
      * that the format being sought-after does not exist.
      */
-    private int formatIndex = -1;
+    private int FormatIndex = -1;
 
     /**
-     * Holds a list of CachedFormats. Used in together with formatIndex to find
+     * Holds a list of CachedFormats. Used in together with FormatIndex to find
      * a format.
      */
     private final ArrayList<CachedFormat> CachedFormatsList = new ArrayList<CachedFormat>();
+
+    private String DatabasePath;
+    private String DatabaseName;
+
+    /**
+     *
+     * @param DatabasePath
+     * @param DatabaseName
+     */
+    public DatabaseManager(String DatabasePath, String DatabaseName) {
+        this.DatabasePath = DatabasePath;
+        this.DatabaseName = DatabaseName;
+
+        this.DRIVER = "jdbc:sqlite:" + DatabasePath + DatabaseName;
+    }
+
+    /**
+     *
+     */
+    public DatabaseManager() {
+        String url = DatabaseManager.class.getClassLoader().getResource("").getFile();
+        //url.
+/*
+         DatabaseManager.class.File resourcesDirectory = new File(url);
+         this.DatabasePath = resourcesDirectory.getAbsolutePath();
+         this.DatabaseName = "/minterDatabase";
+         */
+        //this.DRIVER = "jdbc:sqlite:" + DatabasePath + DatabaseName + ".db";
+        //this.DRIVER = "jdbc:sqlite:C:\\Users\\lruffin\\Desktop\\boop\\hi.db";
+        this.DatabasePath = "";
+        this.DatabaseName = "PID.db";
+        this.DRIVER = "jdbc:sqlite:" + DatabaseName;
+        //System.out.println(DatabasePath + DatabaseName + ".db");
+    }
 
     /**
      * Attempts to connect to the database.
@@ -71,17 +107,16 @@ public class DatabaseManager extends Function {
      * otherwise
      * @throws ClassNotFoundException thrown whenever the JDBC driver is not
      * found
-     * @throws SQLException thrown whenever there is an error with the
-     * database
+     * @throws SQLException thrown whenever there is an error with the database
      */
-    public synchronized boolean createConnection() throws ClassNotFoundException, SQLException {
+    public boolean createConnection() throws ClassNotFoundException, SQLException {
 
         // connect to database
         Class.forName("org.sqlite.JDBC");
-        DATABASE_CONNECTION = DriverManager.getConnection(DRIVER);
+        DatabaseConnection = DriverManager.getConnection(DRIVER);
 
         // allow the database connection to use regular expressions
-        Function.create(DATABASE_CONNECTION, "REGEXP", new DatabaseManager());
+        Function.create(DatabaseConnection, "REGEXP", new DatabaseManager());
 
         if (!isDbSetup()) {
             System.out.println("creating table");
@@ -90,12 +125,12 @@ public class DatabaseManager extends Function {
             String sqlQuery = String.format("CREATE TABLE %s "
                     + "(%s PRIMARY KEY NOT NULL);", TABLE_NAME, COLUMN_NAME);
 
-            // a database bus that allows database/webservice communication 
-            Statement databaseBus = DATABASE_CONNECTION.createStatement();
+            // a database statement that allows database/webservice communication 
+            Statement databaseStatement = DatabaseConnection.createStatement();
 
             // create non-existing table and clean-up
-            databaseBus.executeUpdate(sqlQuery);
-            databaseBus.close();
+            databaseStatement.executeUpdate(sqlQuery);
+            databaseStatement.close();
         }
         return true;
 
@@ -120,7 +155,8 @@ public class DatabaseManager extends Function {
      * @param idName the name of the id.
      * @param tokenIndexArray the array who's values will be incremented.
      */
-    private void incrementMatchingFormats(CachedFormat format, String idName, int[] tokenIndexArray) {
+    private void incrementMatchingFormats(CachedFormat format, String idName, int[] tokenIndexArray) 
+        throws BadParameterException{
         /*
          Get regular expressions from the method retrieveRegex for each token. The
          2nd value is set to false as the regular expression produced will also 
@@ -210,29 +246,57 @@ public class DatabaseManager extends Function {
      * @param list list of ids to check.
      * @throws java.sql.SQLException
      */
-    public synchronized void addId(Set<Id> list) throws SQLException {
+    public void addIdList(Set<Id> list) throws SQLException, BadParameterException {
         System.out.println("adding ids...");
         int[] matchingTokenIndex = new int[7];
-        CachedFormat format = CachedFormatsList.get(formatIndex);
+        CachedFormat format = CachedFormatsList.get(FormatIndex);
+        String sqlQuery1 = "";
+        int counter = 0;
         for (Id id : list) {
 
-            // a string to hold sqlite3 queries
-            String sqlQuery;
+            if (counter == 0) {
+                sqlQuery1 = "INSERT INTO " + TABLE_NAME;
+                sqlQuery1 += String.format(" SELECT %s AS ", id, this.COLUMN_NAME);
+            } else {
+                sqlQuery1 += String.format(" UNION ALL SELECT %s ", id);
+            }
+            if (counter == 500) {
+                // a statement that allows database/webservice communication
+                Statement insertStatement = DatabaseConnection.createStatement();
 
-            // assign a sqlite3 query that adds an id to the database
-            sqlQuery = String.format("INSERT INTO %s (%s) VALUES('%s')", TABLE_NAME, COLUMN_NAME, id);
+                // execute query
+                insertStatement.executeUpdate(sqlQuery1);
 
-            // a statement that allows database/webservice communication
-            Statement insertStatement = DATABASE_CONNECTION.createStatement();
+                // clean-up                
+                insertStatement.close();
 
-            // execute query
-            insertStatement.executeUpdate(sqlQuery);
+                // increment matching tokens
+                incrementMatchingFormats(format, id.toString(), matchingTokenIndex);
 
-            // clean-up                
-            insertStatement.close();
-
+                counter = 0;
+            }
             // increment matching tokens
             incrementMatchingFormats(format, id.toString(), matchingTokenIndex);
+
+            /*
+             // assign a sqlite3 query that adds an id to the database
+             String sqlQuery = String.format("INSERT INTO %s (%s) VALUES('%s')", TABLE_NAME, COLUMN_NAME, id);
+
+             // a statement that allows database/webservice communication
+             Statement insertStatement = DatabaseConnection.createStatement();
+
+             // execute query
+             insertStatement.executeUpdate(sqlQuery);
+
+             
+
+             // increment matching tokens
+             incrementMatchingFormats(format, id.toString(), matchingTokenIndex);
+             */
+        }
+        
+        for(int i : matchingTokenIndex){
+            System.out.println(i);
         }
 
         // update the formats
@@ -241,9 +305,6 @@ public class DatabaseManager extends Function {
 
         System.out.println("done; printed ids to database");
         System.out.println("added new format: " + format);
-        for (CachedFormat formatk : CachedFormatsList) {
-            System.out.println(formatk);
-        }
 
     }
 
@@ -252,11 +313,11 @@ public class DatabaseManager extends Function {
      * are added.
      *
      * @param list list of ids to check.
-     * @return a list containing ids that already exist in database. Returns
-     * an empty list of all the ids given in the param list are unique.
+     * @return a list containing ids that already exist in database. Returns an
+     * empty list of all the ids given in the param list are unique.
      * @throws java.sql.SQLException
      */
-    public boolean checkId(Set<Id> list) throws SQLException {
+    public boolean isIdListUnique(Set<Id> list) throws SQLException {
         System.out.println("in checkId");
         // a flag that'll be raised if 
         boolean containsUniqueIds = true;
@@ -268,7 +329,7 @@ public class DatabaseManager extends Function {
             String sqlQuery = String.format("SELECT %s FROM %2$s WHERE "
                     + "%1$s = '%3$s'", COLUMN_NAME, TABLE_NAME, id);
 
-            Statement databaseStatement = DATABASE_CONNECTION.createStatement();
+            Statement databaseStatement = DatabaseConnection.createStatement();
 
             // execute statement and retrieves the result
             ResultSet databaseResponse = databaseStatement.executeQuery(sqlQuery);
@@ -280,7 +341,7 @@ public class DatabaseManager extends Function {
                 // the id is not unique and is therefore set to false
                 id.setUnique(false);
 
-                // because one of the ids weren't unique, checkId returns false
+                // because one of the ids weren't unique, isIdListUnique returns false
                 containsUniqueIds = false;
             } else {
                 // the id was unique and is therefore set to true
@@ -295,15 +356,15 @@ public class DatabaseManager extends Function {
 
     /**
      * A method used to find any matching formats. If a format was found then
-     * modify the index of formatIndex to the iteration that it was found in.
-     * Otherwise assign formatIndex to -1, a sentinel value that specifies that
+     * modify the index of FormatIndex to the iteration that it was found in.
+     * Otherwise assign FormatIndex to -1, a sentinel value that specifies that
      * a format was not found.
      *
      * @param prefix The string that will be at the front of every id
      * @param token Designates what characters are contained in the id's root
      * @param rootLength Designates the length of the id's root
-     * @param sansVowel Designates whether or not the id's root contains
-     * vowels. If the root does not contain vowels, the sansVowel is true; false
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     * If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
      */
     private void findCachedFormat(String prefix, String token, int rootLength, boolean sansVowel) {
@@ -314,12 +375,12 @@ public class DatabaseManager extends Function {
                     && CachedFormatsList.get(i).getRootLength() == rootLength
                     && CachedFormatsList.get(i).isSansVowel() == sansVowel) {
                 // store the index and return 
-                formatIndex = i;
+                FormatIndex = i;
                 return;
             }
         }
         // assign -1 to designate that the format does not exist
-        formatIndex = -1;
+        FormatIndex = -1;
     }
 
     /**
@@ -329,9 +390,8 @@ public class DatabaseManager extends Function {
      * @param token Designates what characters are contained in the id's root
      * @return a regular expression
      */
-    private String retrieveRegex(String token, boolean sansVowel) {
+    private String retrieveRegex(String token, boolean sansVowel) throws BadParameterException{
 
-        String regex;
         if (token.equals("DIGIT")) {
             return String.format("([\\d])");
         } else if (token.equals("LOWERCASE")) {
@@ -347,15 +407,13 @@ public class DatabaseManager extends Function {
         } else if (token.equals("MIXED_EXTENDED")) {
             return (sansVowel) ? "((\\d)|([^aeiouyAEIOUY]))" : "((\\d)|([a-z])|([A-Z]))";
         } else {
-            // throw an error here
-            regex = token;
-            System.out.println("theres an error with regex");
+            throw new BadParameterException(token, "caused an error in retrieveRegex");
         }
-        return regex;
+        
     }
 
     /**
-     * Used by Auto Minters to determine the number of permutations are
+     * Used by AutoMinters to determine the number of permutations are
      * available.
      *
      * Each id will be matched against a CachedFormat, specified by this
@@ -364,42 +422,57 @@ public class DatabaseManager extends Function {
      * see how many other ids exist in the similar formats.
      *
      * Once a format exists the database will calculate the remaining number of
-     * permuations that can be created using the given parameters
+     * permutations that can be created using the given parameters
      *
      * @param prefix The string that will be at the front of every id
      * @param token Designates what characters are contained in the id's root
      * @param tokenMap Designates the range of possible characters that can
      * exist in the id's root.
      * @param rootLength Designates the length of the id's root
-     * @param sansVowel Designates whether or not the id's root contains
-     * vowels. If the root does not contain vowels, the sansVowel is true; false
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     * If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
      * @return the number of possible permutations that can be added to the
      * database with the given parameters
-     * @throws SQLException thrown whenever there is an error with the
-     * database
+     * @throws SQLException thrown whenever there is an error with the database
      */
-    public long getPermutations(String prefix, String token, String tokenMap, int rootLength,
+    public long getPermutations(String prefix, String token, int rootLength,
             boolean sansVowel)
-            throws SQLException {
+            throws SQLException, BadParameterException {
         // calculate the total number of possible permuations
-        int base = tokenMap.length();
+        int base;
+        if (token.equals("DIGIT")) {
+            base = 10;
+        } else if (token.equals("LOWERCASE") || token.equals("UPPERCASE")) {
+            base = (sansVowel) ? 20 : 26;
+        } else if (token.equals("MIXEDCASE")) {
+            base = (sansVowel) ? 40 : 52;
+        } else if (token.equals("LOWER_EXTENDED") || token.equals("UPPER_EXTENDED")) {
+            base = (sansVowel) ? 30 : 36;
+        } else if (token.equals("MIXED_EXTENDED")) {
+            base = (sansVowel) ? 50 : 62;
+        } else {
+            // throw bad parameters error
+            base = -1;
+        }
+
         long totalPermutations = (long) Math.pow(base, rootLength);
 
         findCachedFormat(prefix, token, rootLength, sansVowel);
 
-        if (formatIndex != -1) {
+        if (FormatIndex != -1) {
             // return the number of remaining permutations
-            CachedFormat currentFormat = CachedFormatsList.get(formatIndex);
+            CachedFormat currentFormat = CachedFormatsList.get(FormatIndex);
             return totalPermutations - currentFormat.getAmountCreated();
         } else {
             CachedFormat format = new CachedFormat(prefix, token, rootLength, sansVowel);
             CachedFormatsList.add(format);
 
             // create sql query to retrieve results
-            Statement databaseStatement = DATABASE_CONNECTION.createStatement();
+            Statement databaseStatement = DatabaseConnection.createStatement();
             String regex = retrieveRegex(token, sansVowel);
 
+            System.out.println("regex = " + regex);
             String rowCount = "ROWCOUNT";
             String sqlQuery = String.format("SELECT COUNT(*) AS %5$s FROM %1$s "
                     + "WHERE %4$s REGEXP '^(%2$s)%3$s{%6$d}$';",
@@ -417,7 +490,7 @@ public class DatabaseManager extends Function {
                 System.out.println("returning 0");
                 matchingIds = 0;
             }
-            formatIndex = CachedFormatsList.size() - 1;
+            FormatIndex = CachedFormatsList.size() - 1;
 
             // close connections
             databaseResponse.close();
@@ -429,7 +502,7 @@ public class DatabaseManager extends Function {
     }
 
     /**
-     * Used by Custom Minters to determine the number of permutations are
+     * Used by CustomMinters to determine the number of permutations are
      * available.
      *
      * Each id will be matched against a CachedFormat, specified by this
@@ -438,21 +511,20 @@ public class DatabaseManager extends Function {
      * see how many other ids exist in the similar formats.
      *
      * Once a format exists the database will calculate the remaining number of
-     * permuations that can be created using the given parameters
+     * permutations that can be created using the given parameters
      *
      * @param prefix The string that will be at the front of every id
-     * @param sansVowel Designates whether or not the id's root contains
-     * vowels. If the root does not contain vowels, the sansVowel is true; false
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     * If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
-     * @param charMap The mapping used to describe range of possible
-     * characters at each of the id's root's digits
+     * @param charMap The mapping used to describe range of possible characters
+     * at each of the id's root's digits
      * @return the number of possible permutations that can be added to the
      * database with the given parameters
-     * @throws SQLException thrown whenever there is an error with the
-     * database
+     * @throws SQLException thrown whenever there is an error with the database
      */
     public long getPermutations(String prefix, boolean sansVowel, String charMap)
-            throws SQLException {
+            throws SQLException, BadParameterException {
         // determine the base
         long totalPermutations = 1;
         for (int i = 0; i < charMap.length(); i++) {
@@ -470,11 +542,11 @@ public class DatabaseManager extends Function {
         String token = getToken(charMap);
 
         findCachedFormat(prefix, token, charMap.length(), sansVowel);
-        if (formatIndex != -1) {
+        if (FormatIndex != -1) {
             // if the format was found, return the difference between total number of 
             // permutations however many was created
             System.out.println("format found");
-            CachedFormat currentFormat = CachedFormatsList.get(formatIndex);
+            CachedFormat currentFormat = CachedFormatsList.get(FormatIndex);
             return totalPermutations - currentFormat.getAmountCreated();
         } else {
             // if the format doesn't exist, create the format
@@ -485,7 +557,7 @@ public class DatabaseManager extends Function {
             CachedFormatsList.add(format);
 
             // create sql query to retrieve results
-            Statement databaseStatement = DATABASE_CONNECTION.createStatement();
+            Statement databaseStatement = DatabaseConnection.createStatement();
 
             String rowCount = "ROWCOUNT";
             String sqlQuery = String.format("SELECT COUNT(*) AS %5$s FROM %1$s "
@@ -493,19 +565,24 @@ public class DatabaseManager extends Function {
                     TABLE_NAME, prefix, regex, COLUMN_NAME, rowCount);
             System.out.println(sqlQuery);
 
+            System.out.println("regex match? " + "bun78nHB".matches(regex));
+            System.out.println("regex match? " + "bunjSzMn".matches(regex));
+            System.out.println("regex match? " + "bunTcfrw".matches(regex));
+            System.out.println("regex match? " + "bunJcg7M".matches(regex));
+            System.out.println("regex match? " + "bunwdflg".matches(regex));
             // retrieve results
             ResultSet databaseResponse = databaseStatement.executeQuery(sqlQuery);
             long matchingIds;
-            if (databaseResponse.next()) {
+            //if (databaseResponse.next()) {
                 matchingIds = databaseResponse.getInt(rowCount);
                 format.setAmountCreated(matchingIds);
                 System.out.println("numId = " + matchingIds);
 
-            } else {
+           // } else {
                 System.out.println("returning 0");
-                matchingIds = 0;
-            }
-            formatIndex = CachedFormatsList.size() - 1;
+              //  matchingIds = 0;
+            //}
+            FormatIndex = CachedFormatsList.size() - 1;
 
             // close connections
             databaseResponse.close();
@@ -530,14 +607,14 @@ public class DatabaseManager extends Function {
      * sansVowel. SansVowel acts as a toggle between regular expressions that
      * include or excludes vowels.
      *
-     * @param sansVowel Designates whether or not the id's root contains
-     * vowels. If the root does not contain vowels, the sansVowel is true; false
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     * If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
-     * @param charMap The mapping used to describe range of possible
-     * characters at each of the id's root's digits
+     * @param charMap The mapping used to describe range of possible characters
+     * at each of the id's root's digits
      * @return the regular expression
      */
-    private String regexBuilder(boolean sansVowel, String charMap) {
+    private String regexBuilder(boolean sansVowel, String charMap) throws BadParameterException {
         String regex = "";
         for (int i = 0; i < charMap.length(); i++) {
             char c = charMap.charAt(i);
@@ -567,11 +644,11 @@ public class DatabaseManager extends Function {
     /**
      * This method returns an equivalent token for any given charMap
      *
-     * @param charMap The mapping used to describe range of possible
-     * characters at each of the id's root's digits
+     * @param charMap The mapping used to describe range of possible characters
+     * at each of the id's root's digits
      * @return the token equivalent to the charMap
      */
-    private String getToken(String charMap) {
+    private String getToken(String charMap) throws BadParameterException {
 
         // true if charMap only contains character 'd'
         if (charMap.matches("^[d]+$")) {
@@ -598,21 +675,18 @@ public class DatabaseManager extends Function {
                 + "(^(?=[dlume]*e)[dlume]*$)")) {
             return "MIXED_EXTENDED";
         } else {
-            // should throw an error here
-            System.out.println("matches: error");
-            return "error";
+            throw new BadParameterException(charMap, "detected in getToken method");
         }
     }
-    
+
     /**
      * Prints a list of ids to the server. Strictly used for error checking.
      *
-     * @throws SQLException thrown whenever there is an error with the
-     * database
+     * @throws SQLException thrown whenever there is an error with the database
      */
     private void printData() throws SQLException {
         System.out.println("current list of items: ");
-        Statement s = DATABASE_CONNECTION.createStatement();
+        Statement s = DatabaseConnection.createStatement();
         String sql = String.format("SELECT * FROM %s;", TABLE_NAME);
         ResultSet r = s.executeQuery(sql);
 
@@ -626,11 +700,10 @@ public class DatabaseManager extends Function {
     /**
      * Used by an external method to close this connection.
      *
-     * @throws SQLException thrown whenever there is an error with the
-     * database
+     * @throws SQLException thrown whenever there is an error with the database
      */
     public synchronized void closeConnection() throws SQLException {
-        DATABASE_CONNECTION.close();
+        DatabaseConnection.close();
     }
 
     /**
@@ -640,38 +713,33 @@ public class DatabaseManager extends Function {
      *
      * @param c connection to the database
      * @return true if table exists in database, false otherwise
-     * @throws SQLException thrown whenever there is an error with the
-     * database
+     * @throws SQLException thrown whenever there is an error with the database
      */
     private boolean isDbSetup() throws SQLException {
-        try {
-            if (!isTableCreatedFlag) {
-                DatabaseMetaData metaData = DATABASE_CONNECTION.getMetaData();
-                ResultSet databaseResponse = metaData.getTables(null, null, TABLE_NAME, null);
 
-                if (!databaseResponse.next()) {
-                    databaseResponse.close();
-                    return false;
-                }
+        if (!isTableCreatedFlag) {
+            DatabaseMetaData metaData = DatabaseConnection.getMetaData();
+            ResultSet databaseResponse = metaData.getTables(null, null, TABLE_NAME, null);
 
-                // set the flag to prevent database being called every request
+            if (!databaseResponse.next()) {
                 databaseResponse.close();
-                isTableCreatedFlag = true;
+                return false;
             }
-            // raise the flag to prevent constant requerying
-            return isTableCreatedFlag;
-        } catch (SQLException exception) {
-            System.err.println(exception.getMessage() + " in isDbSetup");
-            return false;
+
+            // set the flag to prevent database being called every request
+            databaseResponse.close();
+            isTableCreatedFlag = true;
         }
+        // raise the flag to prevent constant requerying
+        return isTableCreatedFlag;
+
     }
 
     /**
      * Creates a method to allow a database connection to use regular
      * expressions.
      *
-     * @throws SQLException thrown whenever there is an error with the
-     * database
+     * @throws SQLException thrown whenever there is an error with the database
      */
     @Override
     protected void xFunc() throws SQLException {
@@ -685,6 +753,27 @@ public class DatabaseManager extends Function {
         result(pattern.matcher(value).find() ? 1 : 0);
     }
 
+    public String getCOLUMN_NAME() {
+        return COLUMN_NAME;
+    }
+
+    public String getTABLE_NAME() {
+        return TABLE_NAME;
+    }
+
+    public ArrayList<CachedFormat> getCachedFormatsList() {
+        return CachedFormatsList;
+    }
+
+    public String getDatabasePath() {
+        return DatabasePath;
+    }
+
+    public String getDatabaseName() {
+
+        return DatabaseName;
+    }
+
     /**
      * Used to store the formats of previously created ids to limit unnecessary,
      * repeated database access when counting matching ids.
@@ -693,10 +782,15 @@ public class DatabaseManager extends Function {
 
         // Fields; detailed description in Minter class
         private final String Prefix;
-        private final String TokenType;     // used to store both TokenType and CharMap
+        private final String TokenType;
         private final int RootLength;
         private final boolean SansVowel;
-        private long AmountCreated;     // amount of ids created using this particular format
+
+        /**
+         * Stores the amount of ids that were created using the format definied
+         * by the other fields: Prefix, TokenType, RootLength, and SansVowel.
+         */
+        private long AmountCreated;
 
         /**
          * Create a CachedFormat to store the formats of a specific kind of id.
