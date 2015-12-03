@@ -37,9 +37,9 @@ public abstract class Id implements Comparable<Id> {
         this.Unique = id.Unique;
     }
 
-    public Id(int[] baseMap, String PREFIX) {
+    public Id(int[] baseMap, String Prefix) {
         this.BaseMap = Arrays.copyOf(baseMap, baseMap.length);
-        this.Prefix = PREFIX;
+        this.Prefix = Prefix;
     }
 
     public abstract boolean incrementId();

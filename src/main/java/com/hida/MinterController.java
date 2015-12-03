@@ -31,14 +31,14 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class MinterController {
 
-    // creates a fair reentrant lock to bottle-neck access to printing pids
-    private final ReentrantLock lock = new ReentrantLock(true);
+    // creates a fair reentrant Lock to bottle-neck access to printing pids
+    private final ReentrantLock Lock = new ReentrantLock(true);
 
     // create a database to be used to create and count number of ids
-    private final DatabaseManager DATABASE_MANAGER = new DatabaseManager();
+    private final DatabaseManager DatabaseManager = new DatabaseManager();
 
     // Logger; logfile to be stored in resource folder
-    private static final Logger LOG = LoggerFactory.getLogger(MinterController.class);
+    private static final Logger Logger = LoggerFactory.getLogger(MinterController.class);
 
     // fields for minter's default values, cached values
     private final String CONFIG_FILE = "minter_config.properties";
@@ -56,12 +56,13 @@ public class MinterController {
     @RequestMapping(value = {"/mint/{input}"},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String printPids(@PathVariable String input, ModelMap model,
-            @RequestParam Map<String, String> parameters) 
-            throws SQLException, IOException, ClassNotFoundException, Exception{
+            @RequestParam Map<String, String> parameters)
+            throws SQLException, IOException, ClassNotFoundException, Exception {
 
-        lock.lock();
+        // ensure that only one thread access the minter at any given time
+        Lock.lock();
+
         // message variable to be sent to mint.jsp
-
         String message;
         try {
 
@@ -73,32 +74,31 @@ public class MinterController {
             MinterParameter minterParameter = new MinterParameter(parameters);
 
             // create connection
-            DATABASE_MANAGER.createConnection();
+            DatabaseManager.createConnection();
 
             // instantiate the correct minter and calculate remaining number of permutations
             long remainingPermutations;
             Minter minter;
             if (minterParameter.isAuto()) {
-                minter = new Minter(DATABASE_MANAGER,
+                minter = new Minter(DatabaseManager,
                         minterParameter.getPrepend(),
                         minterParameter.getRootLength(),
                         minterParameter.getPrefix(),
                         minterParameter.isSansVowels());
                 remainingPermutations
-                        = DATABASE_MANAGER.getPermutations(minterParameter.getPrefix(),
+                        = DatabaseManager.getPermutations(minterParameter.getPrefix(),
                                 minterParameter.getTokenType(),
-                                minter.getBaseMap().get(minterParameter.getTokenType()),
                                 minterParameter.getRootLength(),
                                 minterParameter.isSansVowels());
             } else {
-                minter = new Minter(DATABASE_MANAGER,
-                        minterParameter.getCharMap(),
+                minter = new Minter(DatabaseManager,
                         minterParameter.getPrepend(),
+                        minterParameter.getCharMap(),
                         minterParameter.getPrefix(),
                         minterParameter.isSansVowels());
 
                 remainingPermutations
-                        = DATABASE_MANAGER.getPermutations(minterParameter.getPrefix(),
+                        = DatabaseManager.getPermutations(minterParameter.getPrefix(),
                                 minterParameter.isSansVowels(),
                                 minterParameter.getCharMap());
             }
@@ -134,7 +134,7 @@ public class MinterController {
             // log error messages in catch statements, call error handlers here
         } finally {
             // grants unlocks method and gives access to longest waiting thread            
-            lock.unlock();
+            Lock.unlock();
         }
         // return to mint.jsp
         return "mint";
@@ -163,7 +163,6 @@ public class MinterController {
         return "settings";
     } // end handleForm
 
-
     @ExceptionHandler(NotEnoughPermutationsException.class)
     public ModelAndView handlePermutationError(HttpServletRequest req, Exception exception) {
         //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
@@ -172,50 +171,39 @@ public class MinterController {
         mav.addObject("status", 400);
         mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
-        
-        mav.setViewName("error");        
+
+        mav.setViewName("error");
         return mav;
+        
     }
     
-    
+    @ExceptionHandler(BadParameterException.class)
+    public ModelAndView handleBadParameterError(HttpServletRequest req, Exception exception) {
+        //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
+
+        ModelAndView mav = new ModelAndView();
+        mav.addObject("status", 400);
+        mav.addObject("exception", exception.getClass().getSimpleName());
+        mav.addObject("message", exception.getMessage());
+
+        mav.setViewName("error");
+        return mav;
+    }
+
+    ///*
     @ExceptionHandler(Exception.class)
     public ModelAndView handleGeneralError(HttpServletRequest req, Exception exception) {
         //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
 
         ModelAndView mav = new ModelAndView();
         mav.addObject("status", 500);
-        mav.addObject("exception", exception.getClass());
+        mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
-        
-        mav.setViewName("error");        
+
+        mav.setViewName("error");
         return mav;
     }
-
-    private static String errorToJson(String code, String message) {
-        // Jackson objects to create formatted Json string
-        String jsonString = "";
-        ObjectMapper mapper = new ObjectMapper();
-        Object formattedJson;
-
-        try {
-            // Object used to iterate through list of ids
-
-            // map desired Json format
-            String id = String.format(
-                    "{\"status\":%s,\"name\":\"%s\"}", code, message);
-
-            formattedJson = mapper.readValue(id, Object.class);
-
-            // append formatted json
-            jsonString += mapper.writerWithDefaultPrettyPrinter().
-                    writeValueAsString(formattedJson) + "\n";
-
-        } catch (IOException exception) {
-            System.err.println(exception.getMessage());
-        }
-
-        return jsonString;
-    }
+    //*/
 
     /**
      * A class used to store the parameters given via REST end-point /mint.
@@ -238,8 +226,8 @@ public class MinterController {
          * if any, will be replace the default values in the fields.
          *
          * @param parameters list of parameters given via REST end-point /mint
-         * @throws IOException thrown whenever the configuration file cannot
-         * be found or opened
+         * @throws IOException thrown whenever the configuration file cannot be
+         * found or opened
          */
         private MinterParameter(Map<String, String> parameters) throws IOException {
             retrieveDefaultSetting();
@@ -262,7 +250,7 @@ public class MinterController {
             this.setPrefix((properties.getProperty("prefix")));
             this.setTokenType((properties.getProperty("tokenType")));
             this.setCharMap((properties.getProperty("charMap")));
-            this.setRootLength(Integer.parseInt(properties.getProperty("length")));
+            this.setRootLength(Integer.parseInt(properties.getProperty("rootLength")));
             this.setAuto(Boolean.parseBoolean(properties.getProperty("auto")));
             this.setRandom(Boolean.parseBoolean(properties.getProperty("random")));
             this.setSansVowels(Boolean.parseBoolean(properties.getProperty("sansVowels")));
