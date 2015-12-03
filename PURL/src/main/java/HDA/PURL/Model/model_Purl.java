@@ -1,3 +1,9 @@
+/*model_Purl
+ * Model for Purl object.
+ * 
+ * @author: leland lopez
+ */
+
 package HDA.PURL.Model;
 
 public class model_Purl {
@@ -74,7 +80,7 @@ public class model_Purl {
 		json += "\"ERC\":\"" + ERC + "\",";
 		json += "\"Who\":\"" + Who + "\",";
 		json += "\"What\":\"" + What + "\",";
-		json += "\"When\":\"" + When + "\",";
+		json += "\"When\":\"" + When + "\"";
 		json += "}";
 		return json;
 	}
