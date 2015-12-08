@@ -57,7 +57,7 @@ public class MinterController {
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String printPids(@PathVariable String input, ModelMap model,
             @RequestParam Map<String, String> parameters)
-            throws SQLException, IOException, ClassNotFoundException, Exception {
+            throws Exception {
 
         // ensure that only one thread access the minter at any given time
         Lock.lock();
@@ -82,6 +82,7 @@ public class MinterController {
             if (minterParameter.isAuto()) {
                 minter = new Minter(DatabaseManager,
                         minterParameter.getPrepend(),
+                        minterParameter.getTokenType(),
                         minterParameter.getRootLength(),
                         minterParameter.getPrefix(),
                         minterParameter.isSansVowels());
@@ -100,7 +101,8 @@ public class MinterController {
                 remainingPermutations
                         = DatabaseManager.getPermutations(minterParameter.getPrefix(),
                                 minterParameter.isSansVowels(),
-                                minterParameter.getCharMap());
+                                minterParameter.getCharMap(),
+                                minterParameter.getTokenType());
             }
 
             // throw an exception if the requested amount of ids can't be generated
@@ -111,10 +113,10 @@ public class MinterController {
             if (minterParameter.isAuto()) {
                 if (minterParameter.isRandom()) {
                     System.out.println("making autoRandom");
-                    message = minter.genIdAutoRandom(amount, minterParameter.getTokenType());
+                    message = minter.genIdAutoRandom(amount);
                 } else {
                     System.out.println("making autoSequential");
-                    message = minter.genIdAutoSequential(amount, minterParameter.getTokenType());
+                    message = minter.genIdAutoSequential(amount);
                 }
             } else {
                 if (minterParameter.isRandom()) {
@@ -130,6 +132,7 @@ public class MinterController {
 
             // close the connection
             minter.getDatabaseManager().closeConnection();
+            
 
             // log error messages in catch statements, call error handlers here
         } finally {
@@ -163,6 +166,7 @@ public class MinterController {
         return "settings";
     } // end handleForm
 
+    ///*
     @ExceptionHandler(NotEnoughPermutationsException.class)
     public ModelAndView handlePermutationError(HttpServletRequest req, Exception exception) {
         //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
@@ -176,7 +180,7 @@ public class MinterController {
         return mav;
         
     }
-    
+    //*/
     @ExceptionHandler(BadParameterException.class)
     public ModelAndView handleBadParameterError(HttpServletRequest req, Exception exception) {
         //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
