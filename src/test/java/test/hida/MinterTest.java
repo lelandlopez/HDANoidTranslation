@@ -6,8 +6,10 @@
 package test.hida;
 
 //import static org.testng.Assert.*;
+import com.hida.BadParameterException;
 import com.hida.DatabaseManager;
 import com.hida.Minter;
+import com.hida.NotEnoughPermutationsException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -71,6 +73,38 @@ public class MinterTest implements Comparator<String> {
             {rng.nextInt(90) + 10, "ldudl", "MIXED_EXTENDED"}                
         };
     }
+    
+    @DataProvider(name = "overlap parameters")
+    public static Object[][] FormatOverlapParameters(){
+        return new Object[][]{
+            {100, "DIGIT", true, 2},  
+            {900, "LOWER_EXTENDED", true, 2},  
+            {900, "UPPER_EXTENDED", true, 2}, 
+            {2500, "MIXED_EXTENDED", true, 2} 
+        };
+    }
+    
+    @DataProvider(name = "format parameters")
+    public static Object[][] FormatParameters(){
+        Random rng = new Random();
+        return new Object[][]{
+            {rng.nextInt(90) + 10, "1", "DIGIT", true, 5},  
+            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", true, 5},  
+            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", true, 5}, 
+            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", true, 5}, 
+            {rng.nextInt(90) + 10, "5", "LOWERCASE", true, 5}, 
+            {rng.nextInt(90) + 10, "6", "UPPERCASE", true, 5}, 
+            {rng.nextInt(90) + 10, "7", "MIXEDCASE", true, 5}, 
+            
+            {rng.nextInt(90) + 10, "1", "DIGIT", false, 5},  
+            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", false, 5},  
+            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", false, 5}, 
+            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", false, 5}, 
+            {rng.nextInt(90) + 10, "5", "LOWERCASE", false, 5}, 
+            {rng.nextInt(90) + 10, "6", "UPPERCASE", false, 5}, 
+            {rng.nextInt(90) + 10, "7", "MIXEDCASE", false, 5} 
+        };
+    }
 
     /**
      * Tests that unique values are being added to the database and displayed to
@@ -91,12 +125,13 @@ public class MinterTest implements Comparator<String> {
         String prefix = "";
         Set<String> set = new HashSet<String>();
 
-        Minter AutoMinter = new Minter(DatabaseManager, "/:ark/NAAN/", rootLength, prefix, false);
+        Minter AutoMinter = 
+                new Minter(DatabaseManager, "/:ark/NAAN/", token, rootLength, prefix, false);
 
         try {
 
-            DatabaseManager.getPermutations(prefix, token, rootLength, true);
-            String JSONIds = AutoMinter.genIdAutoRandom(expectedAmount, token);
+            DatabaseManager.getPermutations(prefix, token, rootLength, false);
+            String JSONIds = AutoMinter.genIdAutoRandom(expectedAmount);
 
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
@@ -108,7 +143,7 @@ public class MinterTest implements Comparator<String> {
                 }
             }
             Assert.assertEquals(set.size(), expectedAmount);
-        } catch (SQLException | IOException exception) {
+        } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
@@ -126,11 +161,12 @@ public class MinterTest implements Comparator<String> {
         String prefix = "";
         Set<String> set = new LinkedHashSet<String>();
 
-        Minter AutoMinter = new Minter(DatabaseManager, "/:ark/NAAN/", rootLength, prefix, false);
+        Minter AutoMinter = 
+                new Minter(DatabaseManager, "/:ark/NAAN/", token, rootLength, prefix, false);
 
         try {
-            DatabaseManager.getPermutations(prefix, token, rootLength, true);
-            String JSONIds = AutoMinter.genIdAutoSequential(expectedAmount, token);
+            DatabaseManager.getPermutations(prefix, token, rootLength, false);
+            String JSONIds = AutoMinter.genIdAutoSequential(expectedAmount);
 
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
@@ -151,7 +187,7 @@ public class MinterTest implements Comparator<String> {
                 }
                 prev = current;
             }            
-        } catch (SQLException | IOException exception) {
+        } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
@@ -167,10 +203,11 @@ public class MinterTest implements Comparator<String> {
         String prefix = "";
         Set<String> set = new HashSet<String>();
 
-        Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
+        
 
         try {            
-            DatabaseManager.getPermutations(prefix, false, charMap);
+            Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
+            DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
             String JSONIds = CustomMinter.genIdCustomRandom(expectedAmount);
 
             Scanner JSONParser = new Scanner(JSONIds);
@@ -193,7 +230,7 @@ public class MinterTest implements Comparator<String> {
             
             
                       
-        } catch (SQLException | IOException exception) {
+        } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
@@ -210,10 +247,11 @@ public class MinterTest implements Comparator<String> {
         String prefix = "";
         Set<String> set = new LinkedHashSet<String>();
 
-        Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
+        
 
         try {            
-            DatabaseManager.getPermutations(prefix, false, charMap);
+            Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
+            DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
             String JSONIds = CustomMinter.genIdCustomSequential(expectedAmount);
 
             Scanner JSONParser = new Scanner(JSONIds);
@@ -244,11 +282,68 @@ public class MinterTest implements Comparator<String> {
             }      
             
                       
-        } catch (SQLException | IOException exception) {
+        } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
     
+    /**
+     * Thrown exception snot detected here
+     * @param expectedAmount
+     * @param tokenType
+     * @param sansVowel
+     * @param rootLength 
+     */
+    @Test(dataProvider = "overlap parameters", 
+            expectedExceptions = NotEnoughPermutationsException.class, enabled = false)
+    public void formatOverlap(int expectedAmount, String tokenType, boolean sansVowel, 
+            int rootLength){
+         
+        String prefix = "";
+        Set<String> set = new HashSet<String>();
+
+        Minter AutoMinter = 
+                new Minter(DatabaseManager, "", tokenType, rootLength, prefix, sansVowel);
+
+        try {
+
+            DatabaseManager.getPermutations(prefix, tokenType, rootLength, true);
+            String JSONIds = AutoMinter.genIdAutoRandom(expectedAmount);
+
+            Scanner JSONParser = new Scanner(JSONIds);
+            while (JSONParser.hasNext()) {
+                String id = JSONParser.nextLine();
+                if (!id.matches("(^[{]$)|(^.*\"id\".*.*$)|(^[}]$)")) {
+                    System.out.println(id);
+                    // add id to the set
+                    set.add(id);
+                }
+            }
+            DatabaseManager.printFormat();
+            //throw new NotEnoughPermutationsException();
+        } catch (SQLException | IOException | BadParameterException exception) {
+            Assert.fail(exception.getMessage(), exception);
+        }
+    }
+    
+    @Test(dataProvider = "format parameters")
+    public void testFormat(int expectedAmount, String prefix, String tokenType, 
+            boolean sansVowel, int rootLength){
+        try{
+            DatabaseManager.getPermutations(prefix, tokenType, rootLength, sansVowel);
+            Minter AutoMinter = 
+                    new Minter(DatabaseManager, "", tokenType, rootLength, prefix, sansVowel);
+            
+            AutoMinter.genIdAutoRandom(expectedAmount);
+            
+            if(!DatabaseManager.formatExists(prefix, tokenType, sansVowel, rootLength)){
+                Assert.fail("format does not exist");
+            }
+            
+        }catch(Exception exception){
+            Assert.fail(exception.getMessage(), exception);
+        }
+    }
     
     /**
      * This method returns an equivalent token for any given charMap
@@ -287,22 +382,22 @@ public class MinterTest implements Comparator<String> {
     
     @BeforeTest
     public static void setUpClass() throws Exception {
-        File db = new File(DbName + ".db");
+        File db = new File(DbName);
         System.out.println(db.getAbsolutePath());
         if (db.exists()) {
-            System.out.println("found test database; deleting...");
+            System.out.print("found test database; deleting...");
             db.delete();
-            System.out.print("done");
+            System.out.print("done\n");
         }
     }
 
     @AfterTest
     public static void tearDownClass() throws Exception {
-        File db = new File(DbName + ".db");
+        File db = new File(DbName);
         if (db.exists()) {
-            System.out.println("deleting test database...");
+            System.out.print("deleting test database...");
             db.delete();
-            System.out.print("done");
+            System.out.print("done\n");
         }
     }
 
@@ -313,14 +408,8 @@ public class MinterTest implements Comparator<String> {
     }
 
     @AfterTest
-    public void tearDownTest() throws Exception {
-        String sqlQuery = "DROP TABLE " + MinterTest.DbName + "" + 
-                DatabaseManager.getTABLE_NAME()+ ";";
-        
-        
+    public void tearDownTest() throws Exception { 
         DatabaseManager.closeConnection();
-        
-        
     }
     
     
