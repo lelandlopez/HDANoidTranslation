@@ -23,17 +23,55 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class MinterController {
 
-    // creates a fair reentrant RequestLock to bottle-neck access to printing pids
+    /**
+     * creates a fair reentrant RequestLock to bottle-neck access to printing
+     * pids
+     */
     private final ReentrantLock RequestLock = new ReentrantLock(true);
 
-    // create a database to be used to create and count number of ids
-    private final DatabaseManager DatabaseManager = new DatabaseManager();
+    /**
+     * create a database to be used to create and count number of ids
+     */
+    private final DatabaseManager DatabaseManager;// = new DatabaseManager();
 
-    // Logger; logfile to be stored in resource folder
+    /**
+     * Logger; logfile to be stored in resource folder
+     */
     private static final Logger Logger = LoggerFactory.getLogger(MinterController.class);
 
-    // fields for minter's default values, cached values
+    /**
+     * fields for minter's default values, cached values
+     */
     private final String CONFIG_FILE = "minter_config.properties";
+
+    /**
+     * Constructor that loads the property file and retrieves the values stored
+     * at the databasePath and databaseName keys. If the the keys are empty then
+     * a database called PID.db will be made at the default location specified by
+     * the server. 
+     *
+     * @throws IOException Thrown if the property file was not found.
+     */
+    public MinterController() throws IOException {
+        Properties properties = new Properties();
+
+        properties.load(Thread.currentThread().
+                getContextClassLoader().getResourceAsStream(CONFIG_FILE));
+
+        // retrieve values found in minter_config.properties file                                
+        String path = properties.getProperty("databasePath");
+        String name = properties.getProperty("databaseName");
+
+        if (!name.isEmpty()) {
+            if (!path.endsWith("\\")) {
+                path += "\\";
+            }
+            DatabaseManager = new DatabaseManager(path, name);
+        } else {
+            DatabaseManager = new DatabaseManager();
+        }
+
+    }
 
     /**
      * Creates a path to mint ids. If parameters aren't given then printPids
@@ -307,8 +345,7 @@ public class MinterController {
             Properties properties = new Properties();
 
             properties.load(Thread.currentThread().
-                    getContextClassLoader().getResourceAsStream(
-                            String.format("%s", CONFIG_FILE)));
+                    getContextClassLoader().getResourceAsStream(CONFIG_FILE));
 
             // retrieve values found in minter_config.properties file                                
             this.setPrepend((properties.getProperty("prepend")));
@@ -423,15 +460,50 @@ public class MinterController {
         }
 
         /**
-         * Used for testing; subject to deletion.
+         * Used for testing
          *
          * @return
          */
         @Override
         public String toString() {
-            return String.format("prepend=%s\nprefix=%s\ntokenType=%s\nlength=%d\ncharMap=%s"
-                    + "\nauto=%b\nrandom=%b\nsans%b",
+            return String.format("prepend=%s\tprefix=%s\ttokenType=%s\tlength=%d\tcharMap=%s"
+                    + "\tauto=%b\trandom=%b\tsans%b",
                     Prepend, Prefix, TokenType, RootLength, CharMap, Auto, Random, SansVowels);
         }
+    }
+
+    private class DatabaseParameter {
+
+        private String Path = "";
+        private String Name = "";
+
+        public void loadParameters() throws IOException {
+            Properties properties = new Properties();
+
+            properties.load(Thread.currentThread().
+                    getContextClassLoader().getResourceAsStream(CONFIG_FILE));
+
+            // retrieve values found in minter_config.properties file                                
+            Path = properties.getProperty("databasePath");
+            Name = properties.getProperty("databaseName");
+
+        }
+
+        public String getPath() {
+            return Path;
+        }
+
+        public void setPath(String Path) {
+            this.Path = Path;
+        }
+
+        public String getName() {
+            return Name;
+        }
+
+        public void setName(String Name) {
+            this.Name = Name;
+        }
+
     }
 }
