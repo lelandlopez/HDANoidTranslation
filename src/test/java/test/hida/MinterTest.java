@@ -5,7 +5,6 @@
  */
 package test.hida;
 
-//import static org.testng.Assert.*;
 import com.hida.BadParameterException;
 import com.hida.DatabaseManager;
 import com.hida.Minter;
@@ -19,10 +18,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Random;
 import org.testng.Assert;
-
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import java.util.Scanner;
@@ -35,14 +31,25 @@ import org.testng.annotations.DataProvider;
  */
 public class MinterTest implements Comparator<String> {
 
+    /**
+     * Name of the database
+     */
     static String DbName = "testPID";
-    DatabaseManager DatabaseManager = new DatabaseManager("", DbName);
 
-    
+    /**
+     * Creates a new DatabaseManager completely separate from the actual
+     * service.
+     */
+    DatabaseManager DatabaseManager = new DatabaseManager("", DbName);
 
     public MinterTest() {
     }
 
+    /**
+     * Used to test the functionality of the AutoMinter
+     *
+     * @return
+     */
     @DataProvider(name = "autoMinter parameters")
     public static Object[][] AutoMinterParameters() {
         Random rng = new Random();
@@ -56,9 +63,14 @@ public class MinterTest implements Comparator<String> {
             {rng.nextInt(90) + 10, "MIXED_EXTENDED"}
         };
     }
-    
+
+    /**
+     * Used to test functionality of CustomMinters
+     *
+     * @return
+     */
     @DataProvider(name = "customMinter parameters")
-    public static Object[][] CustomMinterParameters(){
+    public static Object[][] CustomMinterParameters() {
         Random rng = new Random();
         return new Object[][]{
             {rng.nextInt(90) + 10, "ddddd", "DIGIT"},
@@ -70,65 +82,106 @@ public class MinterTest implements Comparator<String> {
             {rng.nextInt(90) + 10, "ududu", "UPPER_EXTENDED"},
             {rng.nextInt(90) + 10, "uedel", "MIXED_EXTENDED"},
             {rng.nextInt(90) + 10, "ldmdu", "MIXED_EXTENDED"},
-            {rng.nextInt(90) + 10, "ldudl", "MIXED_EXTENDED"}                
-        };
-    }
-    
-    @DataProvider(name = "overlap parameters")
-    public static Object[][] FormatOverlapParameters(){
-        return new Object[][]{
-            {100, "DIGIT", true, 2},  
-            {900, "LOWER_EXTENDED", true, 2},  
-            {900, "UPPER_EXTENDED", true, 2}, 
-            {2500, "MIXED_EXTENDED", true, 2} 
-        };
-    }
-    
-    @DataProvider(name = "format parameters")
-    public static Object[][] FormatParameters(){
-        Random rng = new Random();
-        return new Object[][]{
-            {rng.nextInt(90) + 10, "1", "DIGIT", true, 5},  
-            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", true, 5},  
-            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", true, 5}, 
-            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", true, 5}, 
-            {rng.nextInt(90) + 10, "5", "LOWERCASE", true, 5}, 
-            {rng.nextInt(90) + 10, "6", "UPPERCASE", true, 5}, 
-            {rng.nextInt(90) + 10, "7", "MIXEDCASE", true, 5}, 
-            
-            {rng.nextInt(90) + 10, "1", "DIGIT", false, 5},  
-            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", false, 5},  
-            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", false, 5}, 
-            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", false, 5}, 
-            {rng.nextInt(90) + 10, "5", "LOWERCASE", false, 5}, 
-            {rng.nextInt(90) + 10, "6", "UPPERCASE", false, 5}, 
-            {rng.nextInt(90) + 10, "7", "MIXEDCASE", false, 5} 
+            {rng.nextInt(90) + 10, "ldudl", "MIXED_EXTENDED"}
         };
     }
 
     /**
-     * Tests that unique values are being added to the database and displayed to
-     * the client using the Set collection. The tests succeeds if the number of
-     * ids requested is equal to the size of the set.
+     * Used to test whether or not NotEnoughPermutationsException is properly
+     * thrown
      *
-     * Quotation marks and the "name" identifier were not parsed as they will
-     * have no effect on whether or not the actual ids are unique.
+     * @return
+     */
+    @DataProvider(name = "overlap parameters")
+    public static Object[][] FormatOverlapParameters() {
+        return new Object[][]{
+            {100, "DIGIT", true, 2},
+            {900, "LOWER_EXTENDED", true, 2},
+            {900, "UPPER_EXTENDED", true, 2},
+            {2500, "MIXED_EXTENDED", true, 2}
+        };
+    }
+
+    /**
+     * Method that is used to test whether or not the format of an id is stored
+     * in a database.
+     *
+     * @return a list of formats to test.
+     */
+    @DataProvider(name = "format parameters")
+    public static Object[][] FormatParameters() {
+        Random rng = new Random();
+        return new Object[][]{
+            {rng.nextInt(90) + 10, "1", "DIGIT", true, 5},
+            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", true, 5},
+            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", true, 5},
+            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", true, 5},
+            {rng.nextInt(90) + 10, "5", "LOWERCASE", true, 5},
+            {rng.nextInt(90) + 10, "6", "UPPERCASE", true, 5},
+            {rng.nextInt(90) + 10, "7", "MIXEDCASE", true, 5},
+            {rng.nextInt(90) + 10, "1", "DIGIT", false, 5},
+            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", false, 5},
+            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", false, 5},
+            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", false, 5},
+            {rng.nextInt(90) + 10, "5", "LOWERCASE", false, 5},
+            {rng.nextInt(90) + 10, "6", "UPPERCASE", false, 5},
+            {rng.nextInt(90) + 10, "7", "MIXEDCASE", false, 5}
+        };
+    }
+    
+     /**
+     * Returns a set of parameters for AutoMinter that should throw a
+     * BadParameterException
+     *
+     * @return
+     */
+    @DataProvider(name = "bad parameter auto")
+    public static Object[][] BadParametersAutoMinter() {
+        return new Object[][]{
+            {-10, "prefix", "tokenType", 10, true},
+            {100, "!prefix", "tokenType", 10, true},
+            {100, String.format("%21s", ""), "tokenType", 10, true},
+            {100, "prefix", "tokenType", -10, true},
+            {100, "prefix", "tokenType", 11, true}
+        };
+    }
+
+    /**
+     * Returns a set of parameters for AutoMinter that should throw a
+     * BadParameterException
+     *
+     * @return
+     */
+    @DataProvider(name = "bad parameter custom")
+    public static Object[][] BadParametersCustomMinter() {
+        return new Object[][]{
+            {-110, "prefix", "dlume", true},
+            {100, "&prefix", "dlume", true},
+            {100, String.format("%21s", ""), "dlume", true},
+            {100, "prefix", "dlumea", true}
+
+        };
+    }
+
+
+    /**
+     * Tests the AutoMinter to see if its capable of producing unique ids.
+     *
      *
      * @param expectedAmount The requested amount of ids
      * @param token The token used to format the ids
      */
     @Test(dataProvider = "autoMinter parameters")
-    public void testRandomAutoMinter(int expectedAmount, String token) {
-        // must be greater than 2
-        int rootLength = 5;
-
-        String prefix = "";
-        Set<String> set = new HashSet<String>();
-
-        Minter AutoMinter = 
-                new Minter(DatabaseManager, "/:ark/NAAN/", token, rootLength, prefix, false);
-
+    public void testUniqueIdRandomAutoMinter(int expectedAmount, String token) {
         try {
+            // produce the ids using the given format
+            int rootLength = 5;
+
+            String prefix = "";
+            Set<String> set = new HashSet<String>();
+
+            Minter AutoMinter
+                    = new Minter(DatabaseManager, "/:ark/NAAN/", token, rootLength, prefix, false);
 
             DatabaseManager.getPermutations(prefix, token, rootLength, false);
             String JSONIds = AutoMinter.genIdAutoRandom(expectedAmount);
@@ -136,76 +189,94 @@ public class MinterTest implements Comparator<String> {
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.nextLine();
+
+                // parse the json for the name parameter. The prepend and the name identifier
+                // are not filtered out because they will not affect uniqueness
                 if (!id.matches("(^[{]$)|(^.*\"id\".*.*$)|(^[}]$)")) {
-                    System.out.println(id);
-                    // add id to the set
+                    //System.out.println(id);
+                    // add id to the set to prove uniqueness
                     set.add(id);
                 }
             }
+            // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
+
+            // if any exceptions are caught, fail
         } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
 
     /**
+     * Tests the minter to see if the AutoMinter can create ids in ascending
+     * order in a given format.
      *
-     * @param expectedAmount
-     * @param token
+     * @param expectedAmount The amount of ids requested.
+     * @param tokenType Designates what characters are contained in the id's
+     * root.
      */
     @Test(dataProvider = "autoMinter parameters")
-    public void testSequentialAutoMinter(int expectedAmount, String token) {
-        // must be greater than 2
-        int rootLength = 5;
-
-        String prefix = "";
-        Set<String> set = new LinkedHashSet<String>();
-
-        Minter AutoMinter = 
-                new Minter(DatabaseManager, "/:ark/NAAN/", token, rootLength, prefix, false);
-
+    public void testUniqueIdAutoSequentialMinter(int expectedAmount, String tokenType) {
         try {
-            DatabaseManager.getPermutations(prefix, token, rootLength, false);
+
+            // produce the ids using the given format
+            int rootLength = 5;
+
+            String prefix = "";
+            Set<String> set = new LinkedHashSet<String>();
+
+            Minter AutoMinter
+                    = new Minter(DatabaseManager, "/:ark/NAAN/", tokenType, rootLength, prefix, false);
+
+            DatabaseManager.getPermutations(prefix, tokenType, rootLength, false);
             String JSONIds = AutoMinter.genIdAutoSequential(expectedAmount);
 
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.nextLine();
                 if (!id.matches("(^[{]$)|(^.*\"id\".*.*$)|(^[}]$)")) {
-                    System.out.println(id);
-                    // add id to the set
+                    //System.out.println(id);
+                    // add id to the set to prove uniqueness
                     set.add(id);
                 }
             }
+            // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
             Iterator<String> iter = set.iterator();
             String prev = iter.next();
             while (iter.hasNext()) {
                 String current = iter.next();
-                if(compare(prev,current) > -1){
-                    Assert.fail("The ids are not sequential: prev="+prev+"\tcurrent="+current);
+                // if the previous id has an equal or greater value than the current id, 
+                // fail the case
+                if (compare(prev, current) > -1) {
+                    Assert.fail(String.format("The ids are not sequential: prev=%s\tcurrent=%s",
+                            prev, current));
                 }
                 prev = current;
-            }            
+            }
+            // if any exceptions are caught, fail
         } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
-    
+
     /**
+     * Tests the CustomRandomMinter to see if unique ids are produced
      *
-     * @param expectedAmount
-     * @param charMap
-     * @param expectedToken
+     * @param expectedAmount The amount of ids requested.
+     * @param charMap The mapping used to describe range of possible characters
+     * at each of the id's root's digits.
+     * @param tokenType Designates what characters are contained in the id's
+     * root.
      */
     @Test(dataProvider = "customMinter parameters")
-    public void testRandomCustomMinter(int expectedAmount, String charMap, String expectedToken) {       
-        String prefix = "";
-        Set<String> set = new HashSet<String>();
+    public void testUniqueIdRandomCustomMinter(int expectedAmount, String charMap,
+            String tokenType) {
+        try {
+            // produce the ids using the given format
+            String prefix = "";
+            Set<String> set = new HashSet<String>();
 
-        
-
-        try {            
             Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
             DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
             String JSONIds = CustomMinter.genIdCustomRandom(expectedAmount);
@@ -213,43 +284,43 @@ public class MinterTest implements Comparator<String> {
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.next().trim();
+                // parse the json for the name parameter. The prepend and the name identifier
+                // are not filtered out because they will not affect uniqueness
                 if (!id.matches("(^[{]$)|(^.*\"id\".*$)|(^[}]$)|(\"name\")|(:)|(\\d.*,)")) {
-                    System.out.println("(l="+id.length()+")parsedid= " + id);
-                    String parsedId = id.substring(1, id.length()-1);
-                    
-                    System.out.println("expected: " + expectedToken);
-                    System.out.println("getToken: " + getToken(parsedId));
-                    Assert.assertEquals(getToken(parsedId), expectedToken);
-                    
-                    System.out.println(id);
-                    // add id to the set
+
+                    Assert.assertEquals(CustomMinter.getTokenType(), tokenType);
+
+                    //System.out.println(id);
+                    // add id to the set to prove uniqueness
                     set.add(id);
                 }
             }
+            // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
-            
-            
-                      
+
+            // if any exceptions are caught, fail
         } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
-    
-    
+
     /**
+     * Tests whether or not unique values are produced in ascending order by the
+     * Custom Sequential Minter.
      *
-     * @param expectedAmount
-     * @param charMap
-     * @param expectedToken
+     * @param expectedAmount The amount of ids requested.
+     * @param charMap The mapping used to describe range of possible characters
+     * at each of the id's root's digits.
+     * @param tokenType Designates what characters are contained in the id's
+     * root.
      */
     @Test(dataProvider = "customMinter parameters")
-    public void testSequentialCustomMinter(int expectedAmount, String charMap, String expectedToken) {       
-        String prefix = "";
-        Set<String> set = new LinkedHashSet<String>();
-
-        
-
-        try {            
+    public void testUniqueIdSequentialCustomMinter(int expectedAmount, String charMap,
+            String tokenType) {
+        try {
+            // produce the ids using the given format
+            String prefix = "";
+            Set<String> set = new LinkedHashSet<String>();
             Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
             DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
             String JSONIds = CustomMinter.genIdCustomSequential(expectedAmount);
@@ -257,129 +328,168 @@ public class MinterTest implements Comparator<String> {
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.next().trim();
+                // parse the json for the name parameter. The prepend and the name identifier
+                // are not filtered out because they will not affect uniqueness
                 if (!id.matches("(^[{]$)|(^.*\"id\".*$)|(^[}]$)|(\"name\")|(:)|(\\d.*,)")) {
-                    System.out.println("(l="+id.length()+")parsedid= " + id);
-                    String parsedId = id.substring(1, id.length()-1);
-                    
-                    System.out.println("expected: " + expectedToken);
-                    System.out.println("getToken: " + getToken(parsedId));
-                    Assert.assertEquals(getToken(parsedId), expectedToken);
-                    
-                    System.out.println(id);
-                    // add id to the set
+
+                    System.out.println("expected: " + tokenType);
+                    System.out.println("getToken: " + CustomMinter.getTokenType());
+                    Assert.assertEquals(CustomMinter.getTokenType(), tokenType);
+
+                    //System.out.println(id);
+                    // add id to the set to prove uniqueness
                     set.add(id);
                 }
             }
-            Assert.assertEquals(set.size(), expectedAmount);            
+            // if the amount of ids produced is not the same as the number of ids in a set, fail
+            Assert.assertEquals(set.size(), expectedAmount);
             Iterator<String> iter = set.iterator();
             String prev = iter.next();
             while (iter.hasNext()) {
                 String current = iter.next();
-                if(compare(prev,current) > -1){
-                    Assert.fail("The ids are not sequential: prev="+prev+"\tcurrent="+current);
+                // if the previous id has a higher value than the current id, fail the case
+                if (compare(prev, current) > -1) {
+                    Assert.fail("The ids are not sequential: prev=" + prev + "\tcurrent=" + current);
                 }
                 prev = current;
-            }      
-            
-                      
+            }
+
+            // if any exceptions are caught, fail
         } catch (SQLException | IOException | BadParameterException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
-    
+
     /**
-     * Thrown exception snot detected here
-     * @param expectedAmount
-     * @param tokenType
-     * @param sansVowel
-     * @param rootLength 
+     * Populates the database with a digit format so that
+     * NotEnoughPermutationsException can be tested.
      */
-    @Test(dataProvider = "overlap parameters", 
-            expectedExceptions = NotEnoughPermutationsException.class, enabled = false)
-    public void formatOverlap(int expectedAmount, String tokenType, boolean sansVowel, 
-            int rootLength){
-         
-        String prefix = "";
-        Set<String> set = new HashSet<String>();
+    @Test
+    public void populateAutoDigitFormat() {
+        try {
+            Minter AutoMinter;
+            String prefix = "";
 
-        Minter AutoMinter = 
-                new Minter(DatabaseManager, "", tokenType, rootLength, prefix, sansVowel);
+            DatabaseManager.getPermutations(prefix, "DIGIT", 2, true);
+            AutoMinter
+                    = new Minter(DatabaseManager, prefix, "DIGIT", 2, prefix, true);
 
+            AutoMinter.genIdAutoRandom(100);
+        } catch (Exception exception) {
+            Assert.fail(exception.getMessage(), exception);
+        }
+    }
+
+    /**
+     * This tests to see if NotEnoughPermutationsException is properly thrown
+     * whenever appropriate.
+     *
+     * <pre>
+     * The exception is thrown whenever:
+     * - the amount requested exceeds the number of possible permutations.
+     * - the amount of unique ids produced does not meet the amount requested .
+     * </pre>
+     *
+     * If another exception is thrown the test fails.
+     *
+     * @param expectedAmount The amount of ids requested.
+     * @param tokenType Designates what characters are contained in the id's
+     * root.
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     * @param rootLength Designates the length of the id's root.
+     */
+    @Test(dataProvider = "overlap parameters",
+            expectedExceptions = NotEnoughPermutationsException.class,
+            dependsOnMethods = "populateAutoDigitFormat")
+    public void formatOverlap(int expectedAmount, String tokenType, boolean sansVowel,
+            int rootLength) {
+        System.out.println("inside formatOverlap");
         try {
 
-            DatabaseManager.getPermutations(prefix, tokenType, rootLength, true);
-            String JSONIds = AutoMinter.genIdAutoRandom(expectedAmount);
+            String prefix = "";
 
-            Scanner JSONParser = new Scanner(JSONIds);
-            while (JSONParser.hasNext()) {
-                String id = JSONParser.nextLine();
-                if (!id.matches("(^[{]$)|(^.*\"id\".*.*$)|(^[}]$)")) {
-                    System.out.println(id);
-                    // add id to the set
-                    set.add(id);
-                }
-            }
+            DatabaseManager.getPermutations(prefix, tokenType, rootLength, sansVowel);
+            Minter AutoMinter
+                    = new Minter(DatabaseManager, prefix, tokenType, rootLength, prefix, sansVowel);
+
+            AutoMinter.genIdAutoRandom(expectedAmount);
+
             DatabaseManager.printFormat();
-            //throw new NotEnoughPermutationsException();
-        } catch (SQLException | IOException | BadParameterException exception) {
+
+        } catch (SQLException | BadParameterException | IOException exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
-    
+
+    /**
+     * Tests the service to see if a format corresponding to a mint request is
+     * stored in the format table.
+     *
+     * @param expectedAmount The amount of ids requested.
+     * @param prefix The string that will be at the front of every id.
+     * @param tokenType Designates what characters are contained in the id's
+     * root.
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     * @param rootLength Designates the length of the id's root.
+     */
     @Test(dataProvider = "format parameters")
-    public void testFormat(int expectedAmount, String prefix, String tokenType, 
-            boolean sansVowel, int rootLength){
-        try{
+    public void testFormat(int expectedAmount, String prefix, String tokenType,
+            boolean sansVowel, int rootLength) {
+        try {
             DatabaseManager.getPermutations(prefix, tokenType, rootLength, sansVowel);
-            Minter AutoMinter = 
-                    new Minter(DatabaseManager, "", tokenType, rootLength, prefix, sansVowel);
-            
+            Minter AutoMinter
+                    = new Minter(DatabaseManager, "", tokenType, rootLength, prefix, sansVowel);
+
             AutoMinter.genIdAutoRandom(expectedAmount);
-            
-            if(!DatabaseManager.formatExists(prefix, tokenType, sansVowel, rootLength)){
+
+            if (!DatabaseManager.formatExists(prefix, tokenType, sansVowel, rootLength)) {
                 Assert.fail("format does not exist");
             }
-            
-        }catch(Exception exception){
+
+        } catch (Exception exception) {
             Assert.fail(exception.getMessage(), exception);
         }
     }
-    
-    /**
-     * This method returns an equivalent token for any given charMap
-     *
-     * @param charMap The mapping used to describe range of possible characters
-     * at each of the id's root's digits
-     * @return the token equivalent to the charMap
-     */
-    private String getToken(String token) {
 
-        String regex;
-        if (token.matches("([\\d]+)")){                
-            return "DIGIT";
-        } else if (token.matches("([a-z]+)")) {
-            return "LOWERCASE";
-        } else if (token.matches("([A-Z]+)")) {
-            return "UPPERCASE";
-        } else if (token.matches("([a-zA-Z]+)")) {
-            return "MIXEDCASE";
-        } else if (token.matches("^(?=[\\da-z]*\\d)(?=[\\da-z]*[a-z])[\\da-z]*$")) {
-            return "LOWER_EXTENDED";
-        } else if (token.matches("^(?=[\\dA-Z]*\\d)(?=[\\dA-Z]*[A-Z])[\\dA-Z]*$")) {
-            return "UPPER_EXTENDED";
-        } else if (token.matches("^((?=[\\da-zA-Z]*[a-z])"
-                + "(?=[\\da-zA-Z]*[\\d])"
-                + "(?=[\\da-zA-Z]*[A-Z])[\\da-zA-Z]*)$")) {
-            return "MIXED_EXTENDED";
-        } else {
-            // throw an error here
-            regex = token;
-            System.out.println("theres an error with regex");
+   
+    /**
+     *
+     * @param amount The amount of ids requested.
+     * @param prefix The string that will be at the front of every id.
+     * @param tokenType Designates what characters are contained in the id's
+     * root.
+     * @param rootLength Designates the length of the id's root.
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     * @throws Exception
+     */
+    @Test(dataProvider = "bad parameter auto", expectedExceptions = BadParameterException.class)
+    public void testBadParameterExceptionAutoMinter(long amount, String prefix, String tokenType,
+            int rootLength, boolean sansVowel) throws Exception {
+        Minter AutoMinter
+                = new Minter(DatabaseManager, "", tokenType, rootLength, prefix, sansVowel);
+        if (!AutoMinter.isValidAmount(amount)) {
+            throw new BadParameterException(amount, "Requested Amount");
         }
-        return regex;
     }
 
-    
+    /**
+     *
+     * @param amount The amount of ids requested.
+     * @param prefix The string that will be at the front of every id.
+     * @param charMap The mapping used to describe range of possible characters
+     * at each of the id's root's digits.
+     * @param sansVowel Designates whether or not the id's root contains vowels.
+     */
+    @Test(dataProvider = "bad parameter custom", expectedExceptions = BadParameterException.class)
+    public void testBadParameterExceptionCustomMinter(long amount, String prefix, String charMap,
+            boolean sansVowel) throws Exception {
+        Minter CustomMinter
+                = new Minter(DatabaseManager, "", charMap, prefix, sansVowel);        
+        if (!CustomMinter.isValidAmount(amount)) {
+            throw new BadParameterException(amount, "Requested Amount");
+        }
+    }
+
     @BeforeTest
     public static void setUpClass() throws Exception {
         File db = new File(DbName);
@@ -408,12 +518,25 @@ public class MinterTest implements Comparator<String> {
     }
 
     @AfterTest
-    public void tearDownTest() throws Exception { 
+    public void tearDownTest() throws Exception {
         DatabaseManager.closeConnection();
     }
-    
-    
 
+    /**
+     * Used to compare to ids. If the first id has a smaller value than the
+     * second id, -1 is returned. If they are equal, 0 is returned. Otherwise 1
+     * is returned. In terms of value, each character has a unique value
+     * associated with them. Numbers are valued less than lowercase letters,
+     * which are valued less than upper case letters.
+     *
+     * The least and greatest valued number is 0 and 9 respectively. The least
+     * and greatest valued lowercase letter is a and z respectively. The least
+     * and greatest valued uppercase letter is A and Z respectively.
+     *
+     * @param id1 the first id
+     * @param id2 the second id
+     * @return result of the comparison.
+     */
     @Override
     public int compare(String id1, String id2) {
         if (id1.length() < id2.length()) {

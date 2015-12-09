@@ -42,10 +42,10 @@ public class Minter {
     private String CharMap;
 
     /**
-     * Designates what characters are contained in the id's root. There are 7 types of
-     * token maps, each describing a range of possible characters in the id. This
-     * range is further affected by the variable SansVowel.
-     * 
+     * Designates what characters are contained in the id's root. There are 7
+     * types of token maps, each describing a range of possible characters in
+     * the id. This range is further affected by the variable SansVowel.
+     *
      * <pre>
      * DIGIT: Digit values only.
      * LOWERCASE: Lowercase letters only.
@@ -55,7 +55,7 @@ public class Minter {
      * UPPER_EXTENDED: Digits and Uppercase letters only
      * MIXED_EXTENDED: All characters specified by previous tokens
      * </pre>
-     * 
+     *
      */
     private String TokenType;
 
@@ -85,8 +85,8 @@ public class Minter {
     private String Prefix;
 
     /**
-     * A variable that will affect whether or not vowels have the possibility of 
-     * being included in each id. 
+     * A variable that will affect whether or not vowels have the possibility of
+     * being included in each id.
      */
     private boolean SansVowel;
 
@@ -111,22 +111,39 @@ public class Minter {
      * @param DatabaseManager Used to add and check ids against database.
      * @param Prepend Designates the format of the id. Will not appear in
      * database.
-     * @param TokenMap
+     * @param TokenType
      * @param RootLength Designates the length of the id's root
      * @param Prefix The string that will be at the front of every id
      * @param sansVowel Designates whether or not the id's root contains vowels.
      * If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
-    public Minter(DatabaseManager DatabaseManager, String Prepend, String TokenMap, int RootLength, String Prefix,
-            boolean sansVowel) {
+    public Minter(DatabaseManager DatabaseManager, String Prepend, String TokenType, int RootLength, String Prefix,
+            boolean sansVowel) throws BadParameterException {
         this.DatabaseManager = DatabaseManager;
         this.Prepend = Prepend;
-        this.RootLength = RootLength;
-        this.Prefix = Prefix;
         this.SansVowel = sansVowel;
-        this.TokenType = TokenMap;
 
+        // checks the validity of the parameters, throw an exception if they aren't
+        if (isValidRootLength(RootLength)) {
+            this.RootLength = RootLength;
+        } else {
+            throw new BadParameterException(RootLength, "RootLength");
+        }
+        if (isValidPrefix(Prefix)) {
+            this.Prefix = Prefix;
+        } else {
+            throw new BadParameterException(Prefix, "Prefix");
+        }
+        if (isValidTokenType(TokenType)) {
+            this.TokenType = TokenType;
+        } else {
+            throw new BadParameterException(TokenType, "TokenType");
+        }
+
+        // assign base map the appropriate values
         this.BaseMap.put("DIGIT", DIGIT_TOKEN);
         if (sansVowel) {
             this.BaseMap.put("LOWERCASE", SANS_VOWEL_TOKEN);
@@ -159,18 +176,31 @@ public class Minter {
      * @param sansVowel Designates whether or not the id's root contains vowels.
      * If the root does not contain vowels, the sansVowel is true; false
      * otherwise.
-     * @throws com.hida.BadParameterException
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
     public Minter(DatabaseManager DatabaseManager, String Prepend, String CharMap, String Prefix,
             boolean sansVowel) throws BadParameterException {
         this.DatabaseManager = DatabaseManager;
-        this.CharMap = CharMap;
         this.Prepend = Prepend;
         this.Prefix = Prefix;
         this.RootLength = CharMap.length();
         this.SansVowel = sansVowel;
         this.TokenType = convertToToken(CharMap);
 
+        // checks the validity of the parameters, throw an exception if they aren't
+        if (isValidCharMap(CharMap)) {
+            this.CharMap = CharMap;
+        } else {
+            throw new BadParameterException(CharMap, "Char Map");
+        }
+        if (isValidPrefix(Prefix)) {
+            this.Prefix = Prefix;
+        } else {
+            throw new BadParameterException(Prefix, "Prefix");
+        }
+
+        // assign base map the appropriate values
         if (sansVowel) {
             this.BaseMap.put("d", DIGIT_TOKEN);
             this.BaseMap.put("l", SANS_VOWEL_TOKEN);
@@ -198,7 +228,7 @@ public class Minter {
      * @throws SQLException - thrown whenever there is an error with the
      * database.
      */
-    private Set<Id> rollIds(Set<Id> original, boolean order,long totalPermutations, long amount) 
+    private Set<Id> rollIds(Set<Id> original, boolean order, long totalPermutations, long amount)
             throws SQLException, NotEnoughPermutationsException {
         System.out.println("inside roll ids");
 
@@ -221,16 +251,12 @@ public class Minter {
 
             // continuously increments invalid or non-unique ids
             while (!DatabaseManager.isValidId(currentId) || uniqueList.contains(currentId)) {
-
                 /* if counter exceeds totalPermutations, then id has iterated through every 
-                 possible permutation. Related format is updated as a quick-look-up reference
-                 with how many ids have inadvertedly been created using other formats.
+                 possible permutation. Related format is updated as a quick look-up reference
+                 with the number of ids that were inadvertedly been created using other formats.
                  NotEnoughPermutationsException is thrown stating remaining number of ids.
                  */
                 if (counter > totalPermutations) {
-//                    System.out.println("\t\tuniqueCounter = " + uniqueIdCounter);
-                    //                  System.out.println("\t\tcounter = " + counter);
-                    //                System.out.println("\t\ttotalPermutations = " + totalPermutations);
                     long amountTaken = totalPermutations - uniqueIdCounter;
 
                     System.out.println("throwing exception");
@@ -255,19 +281,19 @@ public class Minter {
 
     /**
      * Generates random ids automatically based on root length. The contents of
-     * the ids are determined by the tokenType.     
+     * the ids are determined by the tokenType.
      *
      * @param amount the amount of ids to create
      * @return a JSON list of unique ids.
      * @throws SQLException - thrown whenever there is an error with the
      * database
-     * @throws com.hida.BadParameterException
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      * @throws java.io.IOException
      */
-    public String genIdAutoRandom(long amount) throws SQLException, IOException, 
-            BadParameterException, NotEnoughPermutationsException  {
+    public String genIdAutoRandom(long amount) throws SQLException, IOException,
+            NotEnoughPermutationsException, BadParameterException {
         System.out.println("in genIdAutoRandom: " + amount);
-
         // checks to see if its possible to produce or add requested amount of
         // ids to database
         String tokenMap = BaseMap.get(TokenType);
@@ -282,9 +308,10 @@ public class Minter {
             }
             Id currentId = new AutoId(Prefix, tempIdBaseMap, tokenMap);
             //System.out.println("id created: " + currentId);
-            while (!tempIdList.add(currentId)) {
+            while (tempIdList.contains(currentId)) {
                 currentId.incrementId();
             }
+            tempIdList.add(currentId);
         }
         long totalPermutations
                 = DatabaseManager.getTotalPermutations(TokenType, RootLength, SansVowel);
@@ -306,9 +333,11 @@ public class Minter {
      * @return a JSON list of unique ids.
      * @throws SQLException thrown whenever there is an error with the database
      * @throws java.io.IOException
+     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
      */
     public String genIdAutoSequential(long amount)
-            throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException  {
+            throws SQLException, IOException, BadParameterException, 
+            NotEnoughPermutationsException {
         System.out.println("in genIdAutoSequential: " + amount);
 
         // checks to see if its possible to produce or add requested amount of
@@ -345,10 +374,11 @@ public class Minter {
      * @return a JSON list of unique ids.
      * @throws SQLException thrown whenever there is an error with the database
      * @throws java.io.IOException
+     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
      */
     public String genIdCustomRandom(long amount)
-            throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException  {
-
+            throws SQLException, IOException, BadParameterException, 
+            NotEnoughPermutationsException {  
         System.out.println("in genIdCustomRandom: " + amount);
         String[] tokenMapArray = getBaseCharMapping();
 
@@ -375,16 +405,19 @@ public class Minter {
     }
 
     /**
-     * Sequentially generates ids based on char mapping.    
+     * Sequentially generates ids based on char mapping.
      *
      * @param amount amount of ids to create
      * @return a JSON list of unique ids.
      * @throws SQLException thrown whenever there is an error with the database
      * @throws java.io.IOException
      */
-    public String genIdCustomSequential(int amount)
-            throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException  {
+    public String genIdCustomSequential(long amount)
+            throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException {
         System.out.println("in genIdCustomSequential: " + amount);
+        if (!isValidAmount(amount)) {
+            throw new BadParameterException(amount, "Amount Requested");
+        }
         // checks to see if its possible to produce or add requested amount of
         // ids to database
         String[] tokenMapArray = getBaseCharMapping();
@@ -417,8 +450,9 @@ public class Minter {
      * @param charMap The mapping used to describe range of possible characters
      * at each of the id's root's digits
      * @return the token equivalent to the charMap
+     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
      */
-    protected String convertToToken(String charMap) throws BadParameterException {
+    final protected String convertToToken(String charMap) throws BadParameterException {
 
         // true if charMap only contains character 'd'
         if (charMap.matches("^[d]+$")) {
@@ -450,8 +484,10 @@ public class Minter {
     }
 
     /**
-     * 
-     * @return 
+     * Creates an array that stores a range of characters that designates a
+     * sequence of possible characters at that specific location.
+     *
+     * @return the range of characters.
      */
     private String[] getBaseCharMapping() {
         String[] baseTokenMapArray = new String[CharMap.length()];
@@ -491,6 +527,63 @@ public class Minter {
         }
 
         return jsonString;
+    }
+    
+    /**
+     * Checks whether or not the prefix is valid.
+     *
+     * @param prefix The string that will be at the front of every id.
+     * @return true if it contains numbers and letters and does not exceed 20
+     * characters.
+     */
+    public final boolean isValidPrefix(String prefix) {
+        return prefix.matches("^[0-9a-zA-Z]*$") && prefix.length() <= 20;
+    }
+
+    /**
+     * Checks whether or not the requested amount is valid.
+     *
+     * @param amount The amount of ids requested.
+     * @return True if amount is non-negative.
+     */
+    public final boolean isValidAmount(long amount) {
+        return amount >= 0;
+    }
+
+    /**
+     * Checks whether or not the requested root length is valid
+     *
+     * @param rootLength Designates the length of the id's root.
+     * @return True if rootLength is non-negative and less than or equal to 10.
+     */
+    public final boolean isValidRootLength(long rootLength) {
+        return rootLength >= 0 && rootLength <= 10;
+    }
+
+    /**
+     * Checks whether or not the given tokenType is valid for this minter.
+     *
+     * @param tokenType Designates what characters are contained in the id's
+     * root.
+     * @return True if its equal to one of the pre-defined tokens.
+     */
+    public final boolean isValidTokenType(String tokenType) {
+        return tokenType.equals("DIGIT") || tokenType.equals("LOWERCASE")
+                || tokenType.equals("UPPERCASE") || tokenType.equals("MIXEDCASE")
+                || tokenType.equals("LOWER_EXTENDED") || tokenType.equals("UPPER_EXTENDED")
+                || tokenType.equals("MIXED_EXTENDED");
+    }
+
+    /**
+     * Checks whether or not the given charMap is valid for this minter.
+     *
+     * @param charMap The mapping used to describe range of possible characters
+     * at each of the id's root's digits.
+     * @return True if charMap only contains the characters: 'd', 'l', 'u', 'm',
+     * or 'e'.
+     */
+    public final boolean isValidCharMap(String charMap) {
+        return charMap.matches("^[dlume]*$");
     }
 
     /* typical getter and setter methods */
@@ -648,7 +741,7 @@ public class Minter {
          * Converts the BaseMap into a String representation of this id's name.
          *
          * There is a one-to-one mapping of BaseMap, dependent on a given
- DatabaseManager, to every possible name an Id can have.
+         * DatabaseManager, to every possible name an Id can have.
          *
          * @return - the name of an Id.
          */

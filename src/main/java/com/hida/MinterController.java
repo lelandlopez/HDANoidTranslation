@@ -5,22 +5,14 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
 import java.io.IOException;
-import java.sql.SQLException;
-
 import java.util.Map;
 import java.util.Properties;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.locks.ReentrantLock;
 import javax.servlet.http.HttpServletRequest;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.web.servlet.ModelAndView;
 
 /**
@@ -31,8 +23,8 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class MinterController {
 
-    // creates a fair reentrant Lock to bottle-neck access to printing pids
-    private final ReentrantLock Lock = new ReentrantLock(true);
+    // creates a fair reentrant RequestLock to bottle-neck access to printing pids
+    private final ReentrantLock RequestLock = new ReentrantLock(true);
 
     // create a database to be used to create and count number of ids
     private final DatabaseManager DatabaseManager = new DatabaseManager();
@@ -47,56 +39,47 @@ public class MinterController {
      * Creates a path to mint ids. If parameters aren't given then printPids
      * will resort to using the default values found in minter_config.properties
      *
-     * @param input requested number of ids to mint
+     * @param requestedAmount requested number of ids to mint
      * @param model serves as a holder for the model so that attributes can be
      * added.
      * @param parameters parameters given by user to instill variety in ids
      * @return paths user to mint.jsp
+     * @throws Exception catches all sorts of exceptions that may be thrown by
+     * any methods
      */
-    @RequestMapping(value = {"/mint/{input}"},
+    @RequestMapping(value = {"/mint/{requestedAmount}"},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
-    public String printPids(@PathVariable String input, ModelMap model,
+    public String printPids(@PathVariable long requestedAmount, ModelMap model,
             @RequestParam Map<String, String> parameters)
             throws Exception {
 
         // ensure that only one thread access the minter at any given time
-        Lock.lock();
+        RequestLock.lock();
+        Logger.info("hello1");
 
         // message variable to be sent to mint.jsp
         String message;
         try {
-
-            int amount = Integer.parseInt(input);
-
-            //LOG.info("retrieving data...");
             System.out.print("retrieving data...");
             // retrieve default setting
             MinterParameter minterParameter = new MinterParameter(parameters);
 
-            // create connection
+            // create connection and sets up the database if need be
             DatabaseManager.createConnection();
 
             // instantiate the correct minter and calculate remaining number of permutations
             long remainingPermutations;
             Minter minter;
             if (minterParameter.isAuto()) {
-                minter = new Minter(DatabaseManager,
-                        minterParameter.getPrepend(),
-                        minterParameter.getTokenType(),
-                        minterParameter.getRootLength(),
-                        minterParameter.getPrefix(),
-                        minterParameter.isSansVowels());
+                minter = createAutoMinter(minterParameter, requestedAmount);
+
                 remainingPermutations
                         = DatabaseManager.getPermutations(minterParameter.getPrefix(),
                                 minterParameter.getTokenType(),
                                 minterParameter.getRootLength(),
                                 minterParameter.isSansVowels());
             } else {
-                minter = new Minter(DatabaseManager,
-                        minterParameter.getPrepend(),
-                        minterParameter.getCharMap(),
-                        minterParameter.getPrefix(),
-                        minterParameter.isSansVowels());
+                minter = createCustomMinter(minterParameter, requestedAmount);
 
                 remainingPermutations
                         = DatabaseManager.getPermutations(minterParameter.getPrefix(),
@@ -106,25 +89,25 @@ public class MinterController {
             }
 
             // throw an exception if the requested amount of ids can't be generated
-            if (remainingPermutations < amount) {
-                throw new NotEnoughPermutationsException(remainingPermutations, amount);
+            if (remainingPermutations < requestedAmount) {
+                throw new NotEnoughPermutationsException(remainingPermutations, requestedAmount);
             }
             // have the minter create the ids and assign it to message
             if (minterParameter.isAuto()) {
                 if (minterParameter.isRandom()) {
                     System.out.println("making autoRandom");
-                    message = minter.genIdAutoRandom(amount);
+                    message = minter.genIdAutoRandom(requestedAmount);
                 } else {
                     System.out.println("making autoSequential");
-                    message = minter.genIdAutoSequential(amount);
+                    message = minter.genIdAutoSequential(requestedAmount);
                 }
             } else {
                 if (minterParameter.isRandom()) {
                     System.out.println("making customRandom");
-                    message = minter.genIdCustomRandom(amount);
+                    message = minter.genIdCustomRandom(requestedAmount);
                 } else {
                     System.out.println("making customSequential");
-                    message = minter.genIdCustomSequential(amount);
+                    message = minter.genIdCustomSequential(requestedAmount);
                 }
             }
             // print list of ids to screen
@@ -132,12 +115,9 @@ public class MinterController {
 
             // close the connection
             minter.getDatabaseManager().closeConnection();
-            
-
-            // log error messages in catch statements, call error handlers here
         } finally {
-            // grants unlocks method and gives access to longest waiting thread            
-            Lock.unlock();
+            // unlocks RequestL ockand gives access to longest waiting thread            
+            RequestLock.unlock();
         }
         // return to mint.jsp
         return "mint";
@@ -146,27 +126,87 @@ public class MinterController {
     /**
      * Maps to home page.
      *
-     * @return
+     * @return name of the index page
      */
     @RequestMapping(value = {""},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String displayIndex() {
         return "index";
-    } // end printIndex
+    }
 
     /**
      * maps to settings.jsp so that the user may input data in a form.
      *
      * @param model
-     * @return
+     * @return name of the settings page
      */
     @RequestMapping(value = {"/settings"},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String handleForm(ModelMap model) {
         return "settings";
-    } // end handleForm
+    }
 
-    ///*
+    /**
+     * Because the minter construction checks the parameters for validity, this
+     * method not only instantiates an AutoMinter but also checks whether or not
+     * the requested amount of ids is valid.
+     *
+     * @param minterParameter The parameters of the minter given by the rest end
+     * point and default values.
+     * @param requestedAmount The amount of ids requested.
+     * @return an AutoMinter
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
+     */
+    private Minter createAutoMinter(MinterParameter minterParameter, long requestedAmount)
+            throws BadParameterException {
+        Minter minter = new Minter(DatabaseManager,
+                minterParameter.getPrepend(),
+                minterParameter.getTokenType(),
+                minterParameter.getRootLength(),
+                minterParameter.getPrefix(),
+                minterParameter.isSansVowels());
+
+        if (minter.isValidAmount(requestedAmount)) {
+            return minter;
+        } else {
+            throw new BadParameterException(requestedAmount, "Requested Amount");
+        }
+    }
+
+    /**
+     * Because the minter construction checks the parameters for validity, this
+     * method not only instantiates a CustomMinter but also checks whether or
+     * not the requested amount of ids is valid.
+     *
+     * @param minterParameter The parameters of the minter given by the rest end
+     * point and default values.
+     * @param requestedAmount The amount of ids requested.
+     * @return a CustomMinter
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
+     */
+    private Minter createCustomMinter(MinterParameter minterParameter, long requestedAmount)
+            throws BadParameterException {
+        Minter minter = new Minter(DatabaseManager,
+                minterParameter.getPrepend(),
+                minterParameter.getCharMap(),
+                minterParameter.getPrefix(),
+                minterParameter.isSansVowels());
+
+        if (minter.isValidAmount(requestedAmount)) {
+            return minter;
+        } else {
+            throw new BadParameterException(requestedAmount, "Requested Amount");
+        }
+    }
+
+    /**
+     *
+     * @param req
+     * @param exception
+     * @return
+     */
     @ExceptionHandler(NotEnoughPermutationsException.class)
     public ModelAndView handlePermutationError(HttpServletRequest req, Exception exception) {
         //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
@@ -178,9 +218,15 @@ public class MinterController {
 
         mav.setViewName("error");
         return mav;
-        
+
     }
-    //*/
+
+    /**
+     *
+     * @param req
+     * @param exception
+     * @return
+     */
     @ExceptionHandler(BadParameterException.class)
     public ModelAndView handleBadParameterError(HttpServletRequest req, Exception exception) {
         //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
@@ -194,7 +240,12 @@ public class MinterController {
         return mav;
     }
 
-    ///*
+    /**
+     *
+     * @param req
+     * @param exception
+     * @return
+     */
     @ExceptionHandler(Exception.class)
     public ModelAndView handleGeneralError(HttpServletRequest req, Exception exception) {
         //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
@@ -207,7 +258,14 @@ public class MinterController {
         mav.setViewName("error");
         return mav;
     }
-    //*/
+
+    /**
+     *
+     * @return
+     */
+    public int getRequestLockQueueLength() {
+        return this.RequestLock.getQueueLength();
+    }
 
     /**
      * A class used to store the parameters given via REST end-point /mint.
@@ -220,9 +278,12 @@ public class MinterController {
         private String TokenType;
         private String CharMap;
         private int RootLength;
-        private boolean Auto;
-        private boolean Random;
         private boolean SansVowels;
+        // determines whether or not an auto minter or custom minter is created 
+        private boolean Auto;
+
+        // determines whether or not ids are randomly or sequentially created
+        private boolean Random;
 
         /**
          * Aside from receiving parameters, the constructor will load the
@@ -259,7 +320,7 @@ public class MinterController {
             this.setRandom(Boolean.parseBoolean(properties.getProperty("random")));
             this.setSansVowels(Boolean.parseBoolean(properties.getProperty("sansVowels")));
 
-        } // end retrieveDefaultSetting     
+        }
 
         /**
          * Method that sets the fields to any given parameters. Defaults to
@@ -372,7 +433,5 @@ public class MinterController {
                     + "\nauto=%b\nrandom=%b\nsans%b",
                     Prepend, Prefix, TokenType, RootLength, CharMap, Auto, Random, SansVowels);
         }
-
     }
-
-} // end class
+}

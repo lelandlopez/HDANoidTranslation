@@ -139,8 +139,8 @@ public class DatabaseManager extends Function {
      * @param sansVowel Designates whether or not the id's root contains vowels.
      * @param rootLength Designates the length of the id's root.
      * @throws SQLException thrown whenever there is an error with the database
-     * @throws BadParameterException thrown whenever an invalid parameter is
-     * encountered
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
     public void addIdList(Set<Id> list, long amountCreated, String prefix, String tokenType,
             boolean sansVowel, int rootLength) throws SQLException, BadParameterException {
@@ -266,8 +266,8 @@ public class DatabaseManager extends Function {
      * @param rootLength Designates the length of the id's root.
      * @param sansVowel Designates whether or not the id's root contains vowels.
      * @return the number of total possible permutations.
-     * @throws BadParameterException thrown whenever an invalid parameter is
-     * encountered.
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
     public long getTotalPermutations(String tokenType, int rootLength, boolean sansVowel)
             throws BadParameterException {
@@ -284,7 +284,7 @@ public class DatabaseManager extends Function {
         } else if (tokenType.equals("MIXED_EXTENDED")) {
             base = (sansVowel) ? 50 : 62;
         } else {
-            throw new BadParameterException(tokenType, "invalid tokenType");
+            throw new BadParameterException(tokenType, "Token Type");
         }
 
         return ((long) Math.pow(base, rootLength));
@@ -298,8 +298,7 @@ public class DatabaseManager extends Function {
      * at each of the id's root's digits.
      * @param sansVowel Designates whether or not the id's root contains vowels.
      * @return the number of total possible permutations
-     * @throws BadParameterException thrown whenever an invalid parameter is
-     * encountered
+* @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
      */
     public long getTotalPermutations(String charMap, boolean sansVowel)
             throws BadParameterException {
@@ -315,8 +314,8 @@ public class DatabaseManager extends Function {
             } else if (charMap.charAt(i) == 'e') {
                 totalPermutations *= (sansVowel) ? 50 : 62;
             } else {
-                throw new BadParameterException(String.valueOf(charMap.charAt(i)),
-                        "invalid charMap character");
+                throw new BadParameterException(charMap,
+                        "Char Map");
             }
         }
         return totalPermutations;
@@ -513,7 +512,7 @@ public class DatabaseManager extends Function {
      * @return the number of possible permutations that can be added to the
      * database with the given parameters
      * @throws SQLException thrown whenever there is an error with the database
-     * @throws BadParameterException
+     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
      */
     public long getPermutations(String prefix, String tokenType, int rootLength,
             boolean sansVowel)
@@ -558,7 +557,7 @@ public class DatabaseManager extends Function {
      * @return the number of possible permutations that can be added to the
      * database with the given parameters
      * @throws SQLException thrown whenever there is an error with the database
-     * @throws BadParameterException
+     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
      */
     public long getPermutations(String prefix, boolean sansVowel, String charMap, String tokenType)
             throws SQLException, BadParameterException {
