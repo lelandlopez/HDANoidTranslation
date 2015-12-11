@@ -10,6 +10,8 @@ import java.util.Random;
 import java.util.Set;
 import org.codehaus.jackson.map.ObjectMapper;
 import java.util.TreeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Minter class creates formatted ids in json using a variety of parameters.
@@ -23,7 +25,8 @@ public class Minter {
      * Used to add and check ids against database.
      */
     private final DatabaseManager DatabaseManager;
-
+    // Logger; logfile to be stored in resource folder
+    private static final Logger Logger = LoggerFactory.getLogger(Minter.class);
     /**
      * The mapping used to describe range of possible characters at each of the
      * id's root's digits. There are total of 5 different ranges that a charMap
@@ -162,6 +165,7 @@ public class Minter {
             this.BaseMap.put("MIXED_EXTENDED",
                     DIGIT_TOKEN + VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
         }
+        Logger.info("BaseMap values set to: "+BaseMap);
     }
 
     /**
@@ -214,6 +218,7 @@ public class Minter {
             this.BaseMap.put("m", VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
             this.BaseMap.put("e", DIGIT_TOKEN + VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
         }
+        Logger.info("BaseMap values set to: "+BaseMap);
     }
 
     /**
@@ -260,6 +265,7 @@ public class Minter {
                     long amountTaken = totalPermutations - uniqueIdCounter;
 
                     System.out.println("throwing exception");
+                    Logger.warn("throwing exception");
                     DatabaseManager.setAmountCreated(
                             Prefix, TokenType, SansVowel, RootLength, amountTaken);
                     throw new NotEnoughPermutationsException(uniqueIdCounter, amount);
@@ -273,7 +279,9 @@ public class Minter {
             uniqueList.add(currentId);
         }
         System.out.println("\tuniqueCounter = " + uniqueIdCounter);
+        Logger.info("\tuniqueCounter = " + uniqueIdCounter);
         System.out.println("uniqueList size = " + uniqueList.size());
+        Logger.info("uniqueList size = " + uniqueList.size());
 
         return uniqueList;
 
@@ -294,6 +302,7 @@ public class Minter {
     public String genIdAutoRandom(long amount) throws SQLException, IOException,
             NotEnoughPermutationsException, BadParameterException {
         System.out.println("in genIdAutoRandom: " + amount);
+        Logger.info("in genIdAutoRandom: " + amount);
         // checks to see if its possible to produce or add requested amount of
         // ids to database
         String tokenMap = BaseMap.get(TokenType);
@@ -339,6 +348,8 @@ public class Minter {
             throws SQLException, IOException, BadParameterException, 
             NotEnoughPermutationsException {
         System.out.println("in genIdAutoSequential: " + amount);
+        Logger.info("in genIdAutoSequential: " + amount);
+        
 
         // checks to see if its possible to produce or add requested amount of
         // ids to database
@@ -380,6 +391,7 @@ public class Minter {
             throws SQLException, IOException, BadParameterException, 
             NotEnoughPermutationsException {  
         System.out.println("in genIdCustomRandom: " + amount);
+        Logger.info("in genIdCustomRandom: " + amount);
         String[] tokenMapArray = getBaseCharMapping();
 
         Random rng = new Random();
@@ -415,7 +427,9 @@ public class Minter {
     public String genIdCustomSequential(long amount)
             throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException {
         System.out.println("in genIdCustomSequential: " + amount);
+        Logger.info("in genIdCustomSequential: " + amount);
         if (!isValidAmount(amount)) {
+            Logger.error("Amount Requested"+amount);
             throw new BadParameterException(amount, "Amount Requested");
         }
         // checks to see if its possible to produce or add requested amount of

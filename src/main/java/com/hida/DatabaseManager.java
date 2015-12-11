@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import org.sqlite.Function;
 import java.util.Iterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A class used to manage http requests so that data integrity can be maintained
@@ -18,7 +20,10 @@ import java.util.Iterator;
  */
 public class DatabaseManager extends Function {
 
-    // names of the columns used in the tables
+// Logger; logfile to be stored in resource folder
+    private static final Logger Logger = LoggerFactory.getLogger(DatabaseManager.class);
+    
+// names of the columns used in the tables
     private final String ID_COLUMN = "ID";
     private final String PREFIX_COLUMN = "PREFIX";
     private final String AMOUNT_CREATED_COLUMN = "AMOUNT_CREATED";
@@ -94,16 +99,18 @@ public class DatabaseManager extends Function {
         // connect to database
         Class.forName("org.sqlite.JDBC");
         DatabaseConnection = DriverManager.getConnection(DRIVER);
-
+        Logger.info("Database Connection Created Using: org.sqlite.JDBC");
         // allow the database connection to use regular expressions
         Function.create(DatabaseConnection, "REGEXP", new DatabaseManager());
-
+        Logger.info("Database Created created using Regular Expressions from \"REGEX\"");
         if (!isDbSetup()) {
+            Logger.warn("Database Not Setup, Creating Tables");
             System.out.println("creating table");
 
             // string to hold a query that sets up table in SQLite3 syntax
             String createIdTable = String.format("CREATE TABLE %s "
                     + "(%s PRIMARY KEY NOT NULL);", ID_TABLE, ID_COLUMN);
+            Logger.info("Creating Table: "+ID_TABLE+" with Column Name: "+ID_COLUMN);
             String createFormatTable = String.format("CREATE TABLE %s "
                     + "(%s INTEGER PRIMARY KEY AUTOINCREMENT, "
                     + "%s TEXT NOT NULL, "
@@ -116,9 +123,12 @@ public class DatabaseManager extends Function {
 
             // a database statement that allows database/webservice communication 
             Statement databaseStatement = DatabaseConnection.createStatement();
+            Logger.info("Created BUS from Database to WebService");
             System.out.println(createFormatTable);
             // create non-existing table and clean-up
+            Logger.info("Cleaning up Connection and Table");
             databaseStatement.executeUpdate(createIdTable);
+            Logger.info("Closing Database Connection");
             databaseStatement.executeUpdate(createFormatTable);
 
             databaseStatement.close();
@@ -145,9 +155,10 @@ public class DatabaseManager extends Function {
     public void addIdList(Set<Id> list, long amountCreated, String prefix, String tokenType,
             boolean sansVowel, int rootLength) throws SQLException, BadParameterException {
         System.out.println("adding ids...");
+        Logger.info("Adding IDs to the Database");
         String valueQuery = "";
         String insertQuery = "INSERT INTO " + ID_TABLE + "('" + ID_COLUMN + "') VALUES ";
-
+        Logger.info("ID inserted into: "+ID_TABLE+", Column: "+ID_COLUMN);
         int counter = 1;
         Iterator<Id> listIterator = list.iterator();
         while (listIterator.hasNext()) {
@@ -185,6 +196,7 @@ public class DatabaseManager extends Function {
         System.out.println("updating table format...");
         this.addAmountCreated(prefix, tokenType, sansVowel, rootLength, amountCreated);
         System.out.print("done; printed ids to database\n");
+        Logger.info("Finished; IDs printed to Database");
         this.printFormat();
     }
 
@@ -252,6 +264,8 @@ public class DatabaseManager extends Function {
         } else if (tokenType.equals("MIXED_EXTENDED")) {
             return (sansVowel) ? "((\\d)|([^aeiouyAEIOUY]))" : "((\\d)|([a-z])|([A-Z]))";
         } else {
+            Logger.error("Error found in REGEX used for retrieveRegex"); 
+
             throw new BadParameterException(tokenType, "caused an error in retrieveRegex");
         }
 
@@ -518,6 +532,8 @@ public class DatabaseManager extends Function {
             boolean sansVowel)
             throws SQLException, BadParameterException {
         System.out.println("in getPermutations 1");
+        Logger.info("in Permutations 1");
+        
         // calculate the total number of possible permuations        
         long totalPermutations = getTotalPermutations(tokenType, rootLength, sansVowel);
         long amountCreated = getAmountCreated(prefix, tokenType, sansVowel, rootLength);
@@ -525,10 +541,12 @@ public class DatabaseManager extends Function {
         // format wasn't found
         if (amountCreated == -1) {
             System.out.println("\tformat doesnt exist");
+            Logger.warn("Format Doesn't Exist");
             this.createFormat(prefix, tokenType, sansVowel, rootLength);
             return totalPermutations;
         } else { // format was found
             System.out.println("\tformat exists");
+            Logger.info("format Exists");
             return totalPermutations - amountCreated;
         }
 
@@ -562,6 +580,7 @@ public class DatabaseManager extends Function {
     public long getPermutations(String prefix, boolean sansVowel, String charMap, String tokenType)
             throws SQLException, BadParameterException {
         System.out.println("in getPermutations 2");
+        Logger.info("in getPermutation 2");
         // calculate the total number of possible permuations        
         long totalPermutations = this.getTotalPermutations(charMap, sansVowel);
         long amountCreated = getAmountCreated(prefix, tokenType, sansVowel, charMap.length());
@@ -569,10 +588,12 @@ public class DatabaseManager extends Function {
         // format wasn't found
         if (amountCreated == -1) {
             System.out.println("\tformat doesnt exist");
+            Logger.warn("Format Doesn;t Exist");
             this.createFormat(prefix, tokenType, sansVowel, charMap.length());
             return totalPermutations;
         } else { // format was found
             System.out.println("\tformat exists");
+            Logger.info("format exists");
             return totalPermutations - amountCreated;
         }
     }
@@ -610,6 +631,7 @@ public class DatabaseManager extends Function {
                 token = "MIXED_EXTENDED";
             } else {
                 token = "error";
+                Logger.warn("error found in Regex");
             }
 
             // get the token map and append int to regex
@@ -628,13 +650,16 @@ public class DatabaseManager extends Function {
         System.out.println("current list of items: ");
         Statement s = DatabaseConnection.createStatement();
         String sql = String.format("SELECT * FROM %s;", ID_TABLE);
+        Logger.info("SQL Query used: "+sql);
         ResultSet r = s.executeQuery(sql);
 
         for (int i = 0; r.next(); i++) {
             String curr = r.getString("id");
             System.out.printf("id(%d):  %s", i, curr);
+            Logger.info("Generated ID: "+i+" "+curr);
         }
         System.out.println("done");
+        Logger.info("Done with Print");
     }
 
     /**
@@ -658,7 +683,10 @@ public class DatabaseManager extends Function {
 
             System.out.printf("%10d):%20s%20s%20b%20d%20d\n",
                     id, prefix, tokenType, sansVowel, rootLength, amountCreated);
+            Logger.info("%10d):%20s%20s%20b%20d%20d",
+                    id, prefix, tokenType, sansVowel, rootLength, amountCreated);
         }
+        
         System.out.println("done");
     }
 
@@ -668,6 +696,7 @@ public class DatabaseManager extends Function {
      * @throws SQLException thrown whenever there is an error with the database
      */
     public void closeConnection() throws SQLException {
+        Logger.info("DB Connection Closed");
         DatabaseConnection.close();
     }
 
@@ -690,12 +719,16 @@ public class DatabaseManager extends Function {
             if (!(idTableExists.next() && formatTableExists.next())) {
                 idTableExists.close();
                 formatTableExists.close();
+                Logger.info("Database has not been Setup");
+                
                 return false;
             }
 
             // set the flag to prevent database being called for table existence every request
             idTableExists.close();
             formatTableExists.close();
+            Logger.info("Database has been configured");
+            
             isTableCreatedFlag = true;
         }
         // raise the flag to prevent constant requerying

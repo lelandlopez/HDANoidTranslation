@@ -6,6 +6,8 @@
 package com.hida;
 
 import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An object used to model every Id. By definition, each Id will have a unique
@@ -24,7 +26,9 @@ public abstract class Id implements Comparable<Id> {
     private int[] BaseMap;
     private boolean Unique = true;
     private final String Prefix;
-
+    
+    // Logger; logfile to be stored in resource folder
+    private static final Logger Logger = LoggerFactory.getLogger(Id.class);
     /**
      * Copy constructor; primarily used to copy values of the BaseMap from one
      * Id to another.
