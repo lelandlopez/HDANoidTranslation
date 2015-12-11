@@ -5,6 +5,8 @@
  */
 package com.hida;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
         + "of permutations")
 public class NotEnoughPermutationsException extends RuntimeException {
 
+    // Logger; logfile to be stored in resource folder
+    private static final Logger Logger = LoggerFactory.getLogger(NotEnoughPermutationsException.class);
     private long RemainingPermutations;
     private long RequestedAmount;
 
@@ -43,6 +47,7 @@ public class NotEnoughPermutationsException extends RuntimeException {
 
     @Override
     public String getMessage() {
+        Logger.error(RequestedAmount+" ids were requested but only "+RemainingPermutations+" can be created using given format");
         return String.format("%d ids were requested but only %d can be created using given format",
                 RequestedAmount, RemainingPermutations);
     }

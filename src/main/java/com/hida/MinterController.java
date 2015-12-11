@@ -23,6 +23,8 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class MinterController {
 
+    // Logger; logfile to be stored in resource folder
+    private static final Logger Logger = LoggerFactory.getLogger(MinterController.class);
     /**
      * creates a fair reentrant RequestLock to bottle-neck access to printing
      * pids
@@ -34,10 +36,6 @@ public class MinterController {
      */
     private final DatabaseManager DatabaseManager;// = new DatabaseManager();
 
-    /**
-     * Logger; logfile to be stored in resource folder
-     */
-    private static final Logger Logger = LoggerFactory.getLogger(MinterController.class);
 
     /**
      * fields for minter's default values, cached values
@@ -60,7 +58,9 @@ public class MinterController {
 
         // retrieve values found in minter_config.properties file                                
         String path = properties.getProperty("databasePath");
+        Logger.info("Getting database path");
         String name = properties.getProperty("databaseName");
+        Logger.info("getting Database Name");
 
         if (!name.isEmpty()) {
             if (!path.endsWith("\\")) {
@@ -93,12 +93,13 @@ public class MinterController {
 
         // ensure that only one thread access the minter at any given time
         RequestLock.lock();
-        Logger.info("hello1");
 
         // message variable to be sent to mint.jsp
         String message;
         try {
             System.out.print("retrieving data...");
+            Logger.info("Retrieving data for Parameter");
+            
             // retrieve default setting
             MinterParameter minterParameter = new MinterParameter(parameters);
 
@@ -128,28 +129,36 @@ public class MinterController {
 
             // throw an exception if the requested amount of ids can't be generated
             if (remainingPermutations < requestedAmount) {
+                Logger.error("Not enough remaining Permuations");
                 throw new NotEnoughPermutationsException(remainingPermutations, requestedAmount);
             }
             // have the minter create the ids and assign it to message
             if (minterParameter.isAuto()) {
                 if (minterParameter.isRandom()) {
                     System.out.println("making autoRandom");
+                    Logger.info("Making autoRandom");
                     message = minter.genIdAutoRandom(requestedAmount);
                 } else {
                     System.out.println("making autoSequential");
+                    Logger.info("Making autoSequential");
+                    
                     message = minter.genIdAutoSequential(requestedAmount);
                 }
             } else {
                 if (minterParameter.isRandom()) {
                     System.out.println("making customRandom");
+                    Logger.info("making customRandom");
                     message = minter.genIdCustomRandom(requestedAmount);
                 } else {
                     System.out.println("making customSequential");
+                    Logger.info("making customSequential");
                     message = minter.genIdCustomSequential(requestedAmount);
                 }
             }
             // print list of ids to screen
             model.addAttribute("message", message);
+            Logger.info("message", message);
+            
 
             // close the connection
             minter.getDatabaseManager().closeConnection();
@@ -181,6 +190,8 @@ public class MinterController {
     @RequestMapping(value = {"/settings"},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String handleForm(ModelMap model) {
+        Logger.info("settings page Called");
+        
         return "settings";
     }
 
@@ -208,6 +219,7 @@ public class MinterController {
         if (minter.isValidAmount(requestedAmount)) {
             return minter;
         } else {
+            Logger.error("Request Amount not possible");
             throw new BadParameterException(requestedAmount, "Requested Amount");
         }
     }
@@ -235,6 +247,7 @@ public class MinterController {
         if (minter.isValidAmount(requestedAmount)) {
             return minter;
         } else {
+            Logger.error("Requested amount not Posible with Parameter settings");
             throw new BadParameterException(requestedAmount, "Requested Amount");
         }
     }
@@ -253,6 +266,8 @@ public class MinterController {
         mav.addObject("status", 400);
         mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
+        Logger.error("message", exception.getMessage());
+        
 
         mav.setViewName("error");
         return mav;
@@ -273,7 +288,8 @@ public class MinterController {
         mav.addObject("status", 400);
         mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
-
+        Logger.error("message", exception.getMessage());
+        
         mav.setViewName("error");
         return mav;
     }
@@ -292,7 +308,8 @@ public class MinterController {
         mav.addObject("status", 500);
         mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
-
+        Logger.error("message", exception.getMessage());
+        
         mav.setViewName("error");
         return mav;
     }
@@ -486,6 +503,8 @@ public class MinterController {
             // retrieve values found in minter_config.properties file                                
             Path = properties.getProperty("databasePath");
             Name = properties.getProperty("databaseName");
+            Logger.info("Loading Database Path: "+Path+" Loading Database Name: "+Name);
+            
 
         }
 
