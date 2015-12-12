@@ -268,7 +268,7 @@ public class Minter {
                     long amountTaken = totalPermutations - uniqueIdCounter;
 
                     System.out.println("throwing exception");
-                    Logger.warn("throwing exception");
+                    Logger.error("Total number of Permutations Exceeded: Total Permutation COunt="+totalPermutations);
                     DatabaseManager.setAmountCreated(
                             Prefix, TokenType, SansVowel, RootLength, amountTaken);
                     throw new NotEnoughPermutationsException(uniqueIdCounter, amount);
