@@ -133,16 +133,19 @@ public class Minter {
         if (isValidRootLength(RootLength)) {
             this.RootLength = RootLength;
         } else {
+            Logger.error("Error with Rootlength of: "+RootLength);
             throw new BadParameterException(RootLength, "RootLength");
         }
         if (isValidPrefix(Prefix)) {
             this.Prefix = Prefix;
         } else {
+            Logger.error("Error with Prefix of: "+Prefix);
             throw new BadParameterException(Prefix, "Prefix");
         }
         if (isValidTokenType(TokenType)) {
             this.TokenType = TokenType;
         } else {
+            Logger.error("Error with TokenType of: "+TokenType);
             throw new BadParameterException(TokenType, "TokenType");
         }
 
@@ -165,7 +168,7 @@ public class Minter {
             this.BaseMap.put("MIXED_EXTENDED",
                     DIGIT_TOKEN + VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
         }
-        //Logger.info("BaseMap values set to: "+BaseMap);
+        Logger.info("BaseMap values set to: "+BaseMap);
     }
 
     /**
@@ -218,7 +221,7 @@ public class Minter {
             this.BaseMap.put("m", VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
             this.BaseMap.put("e", DIGIT_TOKEN + VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
         }
-        //Logger.info("BaseMap values set to: "+BaseMap);
+        Logger.info("BaseMap values set to: "+BaseMap);
     }
 
     /**
@@ -265,7 +268,7 @@ public class Minter {
                     long amountTaken = totalPermutations - uniqueIdCounter;
 
                     System.out.println("throwing exception");
-                    //Logger.warn("throwing exception");
+                    Logger.warn("throwing exception");
                     DatabaseManager.setAmountCreated(
                             Prefix, TokenType, SansVowel, RootLength, amountTaken);
                     throw new NotEnoughPermutationsException(uniqueIdCounter, amount);
@@ -279,9 +282,7 @@ public class Minter {
             uniqueList.add(currentId);
         }
         System.out.println("\tuniqueCounter = " + uniqueIdCounter);
-        //Logger.info("\tuniqueCounter = " + uniqueIdCounter);
         System.out.println("uniqueList size = " + uniqueList.size());
-        //Logger.info("uniqueList size = " + uniqueList.size());
 
         return uniqueList;
 
@@ -302,7 +303,6 @@ public class Minter {
     public String genIdAutoRandom(long amount) throws SQLException, IOException,
             NotEnoughPermutationsException, BadParameterException {
         System.out.println("in genIdAutoRandom: " + amount);
-        //Logger.info("in genIdAutoRandom: " + amount);
         // checks to see if its possible to produce or add requested amount of
         // ids to database
         String tokenMap = BaseMap.get(TokenType);
@@ -316,7 +316,8 @@ public class Minter {
                 tempIdBaseMap[j] = rng.nextInt(tokenMap.length());
             }
             Id currentId = new AutoId(Prefix, tempIdBaseMap, tokenMap);
-            //System.out.println("id created: " + currentId);
+            Logger.info("Generated Auto Random ID: "+currentId);
+            System.out.println("id created: " + currentId);
             while (tempIdList.contains(currentId)) {
                 currentId.incrementId();
             }
@@ -359,11 +360,12 @@ public class Minter {
 
         int[] previousIdBaseMap = new int[RootLength];
         AutoId firstId = new AutoId(Prefix, previousIdBaseMap, tokenMap);
-
+        Logger.info("Generated Auto Sequential ID: "+firstId);
         tempIdList.add(firstId);
 
         for (int i = 0; i < amount - 1; i++) {
             AutoId currentId = new AutoId(firstId);
+            Logger.info("Generated Auto Sequential ID: "+currentId);
             currentId.incrementId();
             tempIdList.add(currentId);
             firstId = new AutoId(currentId);
@@ -391,7 +393,6 @@ public class Minter {
             throws SQLException, IOException, BadParameterException, 
             NotEnoughPermutationsException {  
         System.out.println("in genIdCustomRandom: " + amount);
-        //Logger.info("in genIdCustomRandom: " + amount);
         String[] tokenMapArray = getBaseCharMapping();
 
         Random rng = new Random();
@@ -403,6 +404,7 @@ public class Minter {
                 tempIdBaseMap[j] = rng.nextInt(tokenMapArray[j].length());
             }
             Id currentId = new CustomId(Prefix, tempIdBaseMap, tokenMapArray);
+            Logger.info("Generated Custom Random ID: "+currentId);
             while (!tempIdList.add(currentId)) {
                 currentId.incrementId();
             }
@@ -440,11 +442,12 @@ public class Minter {
 
         int[] previousIdBaseMap = new int[RootLength];
         CustomId firstId = new CustomId(Prefix, previousIdBaseMap, tokenMapArray);
-
+        Logger.info("Custom Sequential ID Generated: "+firstId);
         tempIdList.add(firstId);
 
         for (int i = 0; i < amount - 1; i++) {
             CustomId currentId = new CustomId(firstId);
+            Logger.info("Custom Sequential ID Generated: "+currentId);
             currentId.incrementId();
             tempIdList.add(currentId);
             firstId = new CustomId(currentId);

@@ -73,7 +73,7 @@ public class MinterController {
             DatabaseManager = new DatabaseManager();
             Logger.info("Creating DatabaseManager with "
                     +"Path="+DatabaseManager.getDatabasePath()+", "
-                    +"Name="+DatabaseManager.getDatabasePath());
+                    +"Name="+DatabaseManager.getDatabaseName());
         }
 
     }
@@ -98,7 +98,8 @@ public class MinterController {
 
         // ensure that only one thread access the minter at any given time
         RequestLock.lock();
-
+        Logger.warn("Request to Minter made, LOCKING MINTER");
+        
         // message variable to be sent to mint.jsp
         String message;
         try {
@@ -135,8 +136,8 @@ public class MinterController {
 
             // throw an exception if the requested amount of ids can't be generated
             if (remainingPermutations < requestedAmount) {
-                Logger.error("Not enough remaining Permuations, "
-                        + "Requested Ammount="+requestedAmount+" --> "
+                Logger.error("Not enough remaining Permutations, "
+                        + "Requested Amount="+requestedAmount+" --> "
                         + "Amount Remaining="+remainingPermutations);
                 throw new NotEnoughPermutationsException(remainingPermutations, requestedAmount);
             }
@@ -144,39 +145,43 @@ public class MinterController {
             if (minterParameter.isAuto()) {
                 if (minterParameter.isRandom()) {
                     System.out.println("making autoRandom");
+                    Logger.info("Generated IDs will use the Format: "+minterParameter);
                     Logger.info("Making autoRandom Generated IDs, Amount Requested="+requestedAmount);
                     message = minter.genIdAutoRandom(requestedAmount);
-                    Logger.info("Message from Minter: "+message);
+                    //Logger.info("Message from Minter: "+message);
                 } else {
                     System.out.println("making autoSequential");
+                    Logger.info("Generated IDs will use the Format: "+minterParameter);
                     Logger.info("Making autoSequential Generated IDs, Amount Requested="+requestedAmount);
                     
                     message = minter.genIdAutoSequential(requestedAmount);
-                    Logger.info("Message from Minter: "+message);
+                    //Logger.info("Message from Minter: "+message);
                 }
             } else {
                 if (minterParameter.isRandom()) {
                     System.out.println("making customRandom");
-                     Logger.info("Making customRandom Generated IDs, Amount Requested="+requestedAmount);
+                    Logger.info("Generated IDs will use the Format: "+minterParameter);
+                    Logger.info("Making customRandom Generated IDs, Amount Requested="+requestedAmount);
                     message = minter.genIdCustomRandom(requestedAmount);
-                    Logger.info("Message from Minter: "+message);
+                    //Logger.info("Message from Minter: "+message);
                 } else {
                     System.out.println("making customSequential");
-                     Logger.info("Making customSequential Generated IDs, Amount Requested="+requestedAmount);
+                    Logger.info("Generated IDs will use the Format: "+minterParameter);
+                    Logger.info("Making customSequential Generated IDs, Amount Requested="+requestedAmount);
                     message = minter.genIdCustomSequential(requestedAmount);
-                    Logger.info("Message from Minter: "+message);
+                    //Logger.info("Message from Minter: "+message);
                 }
             }
             // print list of ids to screen
             model.addAttribute("message", message);
-            Logger.info("message", message);
-            
+                        
 
             // close the connection
             minter.getDatabaseManager().closeConnection();
         } finally {
-            // unlocks RequestL ockand gives access to longest waiting thread            
+            // unlocks RequestLock and gives access to longest waiting thread            
             RequestLock.unlock();
+            Logger.warn("Request to Minter Finished, UNLOCKING MINTER");
         }
         // return to mint.jsp
         return "mint";
@@ -190,6 +195,7 @@ public class MinterController {
     @RequestMapping(value = {""},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String displayIndex() {
+        Logger.info("index page called");
         return "index";
     }
 
@@ -203,7 +209,6 @@ public class MinterController {
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String handleForm(ModelMap model) {
         Logger.info("settings page Called");
-        
         return "settings";
     }
 
@@ -231,7 +236,7 @@ public class MinterController {
         if (minter.isValidAmount(requestedAmount)) {
             return minter;
         } else {
-            Logger.error("Request Amount not possible");
+            Logger.error("Request amount of "+requestedAmount+" IDs is unavailable");
             throw new BadParameterException(requestedAmount, "Requested Amount");
         }
     }
@@ -259,7 +264,7 @@ public class MinterController {
         if (minter.isValidAmount(requestedAmount)) {
             return minter;
         } else {
-            Logger.error("Requested amount not Posible with Parameter settings");
+            Logger.error("Request amount of "+requestedAmount+" IDs is unavailable");
             throw new BadParameterException(requestedAmount, "Requested Amount");
         }
     }
@@ -278,9 +283,7 @@ public class MinterController {
         mav.addObject("status", 400);
         mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
-        Logger.error("message", exception.getMessage());
-        
-
+        Logger.error("Error with permutation: "+exception.getMessage());
         mav.setViewName("error");
         return mav;
 
@@ -300,7 +303,7 @@ public class MinterController {
         mav.addObject("status", 400);
         mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
-        Logger.error("message", exception.getMessage());
+        Logger.error("Error with bad parameter: "+ exception.getMessage());
         
         mav.setViewName("error");
         return mav;
@@ -314,13 +317,12 @@ public class MinterController {
      */
     @ExceptionHandler(Exception.class)
     public ModelAndView handleGeneralError(HttpServletRequest req, Exception exception) {
-        //logger.error("Request: " + req.getRequestURL() + " raised " + exception);
-
+        
         ModelAndView mav = new ModelAndView();
         mav.addObject("status", 500);
         mav.addObject("exception", exception.getClass().getSimpleName());
         mav.addObject("message", exception.getMessage());
-        Logger.error("message", exception.getMessage());
+        Logger.error("Error General Error: "+ exception.getMessage());
         
         mav.setViewName("error");
         return mav;
