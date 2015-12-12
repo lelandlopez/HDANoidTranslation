@@ -58,17 +58,22 @@ public class MinterController {
 
         // retrieve values found in minter_config.properties file                                
         String path = properties.getProperty("databasePath");
-        Logger.info("Getting database path");
+        Logger.info("Getting database path: "+path);
         String name = properties.getProperty("databaseName");
-        Logger.info("getting Database Name");
+        Logger.info("getting Database Name: "+name);
 
         if (!name.isEmpty()) {
             if (!path.endsWith("\\")) {
                 path += "\\";
+                Logger.warn("Database Path not set correctly: adding \\");
             }
             DatabaseManager = new DatabaseManager(path, name);
+            Logger.info("Creating DataBase Manager with Path="+path+", Name="+name);
         } else {
             DatabaseManager = new DatabaseManager();
+            Logger.info("Creating DatabaseManager with "
+                    +"Path="+DatabaseManager.getDatabasePath()+", "
+                    +"Name="+DatabaseManager.getDatabasePath());
         }
 
     }
@@ -105,6 +110,7 @@ public class MinterController {
 
             // create connection and sets up the database if need be
             DatabaseManager.createConnection();
+            Logger.info("Database Connection Created to: "+DatabaseManager.getDatabaseName());
 
             // instantiate the correct minter and calculate remaining number of permutations
             long remainingPermutations;
@@ -129,30 +135,36 @@ public class MinterController {
 
             // throw an exception if the requested amount of ids can't be generated
             if (remainingPermutations < requestedAmount) {
-                Logger.error("Not enough remaining Permuations");
+                Logger.error("Not enough remaining Permuations, "
+                        + "Requested Ammount="+requestedAmount+" --> "
+                        + "Amount Remaining="+remainingPermutations);
                 throw new NotEnoughPermutationsException(remainingPermutations, requestedAmount);
             }
             // have the minter create the ids and assign it to message
             if (minterParameter.isAuto()) {
                 if (minterParameter.isRandom()) {
                     System.out.println("making autoRandom");
-                    Logger.info("Making autoRandom");
+                    Logger.info("Making autoRandom Generated IDs, Amount Requested="+requestedAmount);
                     message = minter.genIdAutoRandom(requestedAmount);
+                    Logger.info("Message from Minter: "+message);
                 } else {
                     System.out.println("making autoSequential");
-                    Logger.info("Making autoSequential");
+                    Logger.info("Making autoSequential Generated IDs, Amount Requested="+requestedAmount);
                     
                     message = minter.genIdAutoSequential(requestedAmount);
+                    Logger.info("Message from Minter: "+message);
                 }
             } else {
                 if (minterParameter.isRandom()) {
                     System.out.println("making customRandom");
-                    Logger.info("making customRandom");
+                     Logger.info("Making customRandom Generated IDs, Amount Requested="+requestedAmount);
                     message = minter.genIdCustomRandom(requestedAmount);
+                    Logger.info("Message from Minter: "+message);
                 } else {
                     System.out.println("making customSequential");
-                    Logger.info("making customSequential");
+                     Logger.info("Making customSequential Generated IDs, Amount Requested="+requestedAmount);
                     message = minter.genIdCustomSequential(requestedAmount);
+                    Logger.info("Message from Minter: "+message);
                 }
             }
             // print list of ids to screen

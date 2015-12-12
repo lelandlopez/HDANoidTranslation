@@ -47,7 +47,7 @@ public class NotEnoughPermutationsException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        Logger.error(RequestedAmount+" ids were requested but only "+RemainingPermutations+" can be created using given format");
+        //Logger.error(RequestedAmount+" ids were requested but only "+RemainingPermutations+" can be created using given format");
         return String.format("%d ids were requested but only %d can be created using given format",
                 RequestedAmount, RemainingPermutations);
     }
