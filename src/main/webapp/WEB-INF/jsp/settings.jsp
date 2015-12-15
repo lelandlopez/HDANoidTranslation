@@ -82,10 +82,52 @@
             if (confirm("Are you sure you want to submit? Submitting will restart the service and reject all queued requests.") == true) {
                 x = "Changes have been saved.";
             } else {
+                function submitForm() { 
+                    return false; 
+                }
                 x = "Canceled.";
             }
             document.getElementById("confirmed").innerHTML = x;
         }
+       
+        function prefixIDCHECK() {
+            var isNumber =  /^[0-9a-zA-Z]*$/.test(document.getElementById("idprefix").value.toString());
+            if(isNumber == true) {
+            document.getElementById("idprefix").style.borderColor="#FFFFFF"
+            document.getElementById("submit").disabled = false;
+            } else {
+            document.getElementById("idprefix").style.borderColor="#FF0000"
+            document.getElementById("submit").disabled = true;
+           
+            }
+        }
+        
+        
+        function rootlengthCHECK() {
+            var isNumber =  /^[0-9]+$/.test(document.getElementById("idlength").value.toString());
+            if(isNumber == true) {
+            document.getElementById("idlength").style.borderColor="#FFFFFF"
+            document.getElementById("submit").disabled = false;
+            } else {
+            document.getElementById("idlength").style.borderColor="#FF0000"
+            document.getElementById("submit").disabled = true;
+           
+            }
+        }
+        
+        
+        function charmappingCHECK() {
+            var isNumber =  /^[dlume]+$/.test(document.getElementById("charmapping").value.toString());
+            if(isNumber == true) {
+            document.getElementById("charmapping").style.borderColor="#FFFFFF"
+            document.getElementById("submit").disabled = false;
+            } else {
+            document.getElementById("charmapping").style.borderColor="#FF0000"
+            document.getElementById("submit").disabled = true;
+           
+            }
+        }
+        
     </script>
 </head>
 
@@ -129,7 +171,7 @@
                     ID Prefix:
                 </td>
                 <td>
-                    <input type="text" name="idprefix" required pattern="[a-zA-Z0-9]*"/>
+                    <input type="text" id="idprefix" name="idprefix" required pattern="[a-zA-Z0-9]*" onkeyup="prefixIDCHECK()"/>
                 </td>
             </tr>
             
@@ -171,7 +213,7 @@
                     Tokens:
                 </td>
                 <td>
-                    <input type="checkbox" name="digits" value="digits" id="digits"/>Digits
+                    <input type="checkbox" name="digits" value="digits" id="digits" onchange=""/>Digits
                     <input type="checkbox" name="lowercase" value="lowercase" id="lowercase" onclick="onCaseSelected()"/>Lowercase
                     <input type="checkbox" name="uppercase" value="uppercase" id="uppercase" onclick="onCaseSelected()"/>Uppercase
                 </td>
@@ -192,7 +234,7 @@
                     Char Mapping:
                 </td>
                 <td>
-                    <input type="text" name="charmapping" required pattern="[dlume]+"/>
+                    <input type="text" id="charmapping" name="charmapping" required pattern="[dlume]+" onkeyup="charmappingCHECK()"/>
                 </td>
             </tr>
             
@@ -221,7 +263,7 @@
                     Root Length:
                 </td>
                 <td>
-                    <input type="number" name="idlength" min="1" max="10"/>
+                    <input type="number" id="idlength" name="idlength" min="1" max="10" onkeyup="rootlengthCHECK()"/>
                 </td>
             </tr>
             
