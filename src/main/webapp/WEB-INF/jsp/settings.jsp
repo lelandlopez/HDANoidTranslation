@@ -1,139 +1,250 @@
 <%-- 
     Document   : settings
     Created on : Nov 9, 2015, 11:53:52 AM
-    Author     : Brittney
+    Author     : Brittany Cruz
 --%>
 
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 
 <html>
+    
+<head>
+    
+    
+    <link href="css/styles.css" rel="stylesheet" type="text/css">
+    <link href="/css/styles.css" rel="stylesheet" type="text/css">
+    
+   
 
-    <head>
-        <title>
-            Minter Request Form
-        </title>
-
-        <script language="JavaScript" type='text/javascript'>
-            function checkData() {
-                var i = 0;
-
-                //CHAR MAPPING ERROR:
-                if (document.getElementById("charmap").value.match(/^[dlumea]+$/) === null) {
-                    document.getElementById("charmapErr").style.display = "block";
-                    i++;
-                    document.getElementById("charmap").focus();
-                } else {
-                    document.getElementById("charmap").style.display = "none";
+    
+    <script language = "javascript">
+        //When first loading the page.
+        window.onload = function() {
+            document.getElementById("trcharmapping").style.display = "none";
+        }
+    
+    
+        //Submitting the form.
+        function submitForm() {
+            var minter = document.getElementById("mintergentype").value;
+            var noSubmitAutoElements = ['charmapping'];
+            var noSubmitCustomElements = ['token', 'idlength'];
+            //Automated ID's - remove Custom ID's fields.
+            if (minter == "auto") {
+                for( var i = 0, j = noSubmitAutoElements.length; i < j; i++ ) {
+                    document.getElementById(noSubmitElements[i]).removeAttribute('name');
                 }
-
-                //ID PREFIX ERROR:
-
-                //ID LENGTH ERROR:
-
-                if (i === 0) {
-                    document.getElementById("formErr").style.display = "none";
-                    return true;
-                } else {
-                    document.getElementById("formErr").style.display = "block";
-                    return false;
+            }
+            //Custom ID's - remove Automated ID's fields.
+            else {
+                for( var i = 0, j = noSubmitCustomElements.length; i < j; i++ ) {
+                    document.getElementById(noSubmitElements[i]).removeAttribute('name');
                 }
-
-            } //End of checkData()
-        </script>
-    </head>
-
-    <!-- ========== END OF HEAD, START OF BODY ================ -->
-    <body bgcolor="#ffffff">
-
-        <!-- === CONTENT AREA ===  -->
-        <div style="position: absolute; left:30px; right:30px; ">
-            <div align="left">
-
-                <h2>Minter</h2>
-
-                <p>Choose your desired minter, and input the char mapping as well. Then there's an option to input a prefix if wanted, the legnth of the ID, and lastly choose if you want it Automated or Custom'.<br><br></p>
-            </div>
-
-            <center>
-                <hr width="80%">
-            </center>
-
-            <form onsubmit='return checkData()' >
-                <table border="3" bgcolor="#FFFFF0" cellspacing="3" cellpadding="7">
-                    <tr>
-                        <!-- old style:
-                         <td align="CENTER" bgcolor="#000080"><b><i><font color="#ffd700" size="+2"
-                         >Shipping Information</font></i></b></td>
-                        -->
-                        <td style="background-color:#000080; font-size:large; font-style:italic;
-                            font-weight:bold; color:#ffd700; text-align:center">
-                            Minter Request Form</td>
-                    </tr>
-                    <tr>
-
-                        <td><table border="0" cellspacing="2" cellpadding="4">
-
-                                <!--MINTER:  A pull-down menu allows for a choice among different Minters.-->
-                                <tr>
-                                    <td align="RIGHT">Minter Type:</td>
-                                    <td><select name="MinterType" id="minter">
-                                            <option value="pseudo">Pseudo Minter</option>
-                                            <option value="ark">Ark Minter</option></td>
-                                </tr>
-
-
-                                <!--FORMAT:  A pull-down menu allows for a choice among ID Format.-->
-                                <tr>
-                                    <td align="RIGHT">ID Format:</td>
-                                    <td><select name="MinterIDformat" id="minter">
-                                            <option value="auto">Automated</option>
-                                            <option value="custom">Customize</option>
-                                    </td>
-                                </tr>
+            }
+        }
+        form1.onsubmit = submitForm;
+        
+        
+    
+        //Changing the display for when to show "Auto" or "Custom" elements.
+        function onMinterSelected() {
+            var minter = document.getElementById("mintergentype").value;
+            //Automated ID's:
+            if (minter == "auto") {
+               document.getElementById("trtoken").style.display = "table-row";
+                document.getElementById("tridlength").style.display = "table-row";
+                document.getElementById("trcharmapping").style.display = "none";
+            }
+            //Custom ID's:
+            else {
+                document.getElementById("trtoken").style.display = "none";
+                document.getElementById("tridlength").style.display = "none";
+                document.getElementById("trcharmapping").style.display = "table-row";
+                document.getElementById("trvowels").style.display = "table-row";
+            }
+        }
+    
+        //Changing the display for when to show the "Vowels" option.
+        function onCaseSelected() {
+           if(document.getElementById("lowercase").checked || document.getElementById("uppercase").checked) {
+                document.getElementById("trvowels").style.display = "table-row";
+           } else {
+                document.getElementById("trvowels").style.display = "none";
+           }     
+        }
+    
+        //Check data when submitting form.
+        function check() {
+            var x;
+            if (confirm("Are you sure you want to submit? Submitting will restart the service and reject all queued requests.") == true) {
+                x = "Changes have been saved.";
+            } else {
+                x = "Canceled.";
+            }
+            document.getElementById("confirmed").innerHTML = x;
+        }
+    </script>
+</head>
 
 
-                                <!--CHAR MAPPING:  A text field to indicate desired Char Mapping.-->
-                                <tr>
-                                    <td align="right" valign="top">Char Mapping:</td>
-                                    <td><input type="text" name="MinterCharMapping" size="25" maxlength="10" id="charmap">
-                                        <div id="charmapErr" style="display:none; color:red">
-                                            Must be lowercase "d", "l", "u", "m", "e", "a" values only.</div>
-                                    </td>
-                                </tr>
+<body>
+    <!--HDA MINTER FORM: User form to select and customize Persistent ID Minter options.-->
+    <form id="form1" runat="server" onsubmit="submitForm()">
+        
+        
+        <!--FORM HEADER: A simple header for the form.-->
+        <h2 align="center"><img src="images/hda.png" width=60 height=60 align="middle"> Settings</h2>
+        
+        
+        
+        <!--FORM TABLE: Includes all options on generating the Persistent ID's.-->
+        <table id="table1"; cellspacing="5px" cellpadding="5%"; align="center" >
+            <col width="10000px" />
+            <col width="10000px" />
+            
+            
+            
+            <!--PREPEND: A textbox for user to input a prepend such as the NAAN, DOI, etc.-->
+            <tr id="trprepend">
+                <td align="right">
+                    <a href="#" class="tooltip left" data-tool="This is a text box where the user can place a prepend variable. It isn't a required option to do so. (Example: '/:ark/12345/' would be a NAAN prepend. Etc.)"><img src="images/help.png" width=12 height=12>
+                    </a>
+                    Prepend:
+                </td>
+                <td>
+                    <input type="text" name="prepend"/>
+                </td>
+            </tr>
+            
+            
+            
+            <!--ID PREFIX: A text field for the desired prefix before each generated ID.-->
+            <tr id="tridprefix">
+                <td align="right">
+                    <a href="#" class="tooltip left" data-tool="This is a text box where the user can place a set ID prefix that will come before the root of each generated ID within the session. It isn’t a required option to do so. (Example: prefix001, prefix002, prefix003. Etc.)"><img src="images/help.png" width=12 height=12>
+                    </a>
+                    ID Prefix:
+                </td>
+                <td>
+                    <input type="text" name="idprefix" required pattern="[a-zA-Z0-9]*"/>
+                </td>
+            </tr>
+            
+            
+            
+            <!--MINTER TYPE: A pull-down menu allows for a choice among different Minters.-->
+            <tr id="trminter">
+                <td align="right">
+                    <a href="#" class="tooltip left" data-tool="Automated: Set pool of tokens for computer to choose requested characters, and set an ID length for each generated ID.    Custom: Use the Char Mapping feature by typing in specifically which char tokens in desired pattern.">
+                        <img src="images/help.png" width=12 height=12>
+                    </a>
+                    Minter Type:
+                </td>
+                <td>
+                    <select id="mintergentype" onchange="onMinterSelected()">
+                        <option value="auto">Automated</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <select name="minteridorder">
+                        <option value="random">Random</option>
+                        <option value="sequential">Sequential</option>
+                    </select>
+                </td>
+                
+            </tr>
+            
+            
+            
+            <!--TOKEN TYPE: Allows users to check which set of chars to place into pool of characters to generate from.-->
+            <tr id="trtoken">
+                <td align="right">
+                    <a href="#" class="tooltip left" data-tool="This consists of three checkboxes: Digits, Lowercase, and Uppercase. 
+                        These are the only options of character selection for the generated ID’s.                        
+                        Digits consists of '0123456789'.
+                        Lowercase consists of 'abcdefghijklmnopqrstuvwxyz'.
+                        Uppercase consists of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'." 
+                        ><img src="images/help.png" width=12 height=12>
+                    </a>
+                    Tokens:
+                </td>
+                <td>
+                    <input type="checkbox" name="digits" value="digits" id="digits"/>Digits
+                    <input type="checkbox" name="lowercase" value="lowercase" id="lowercase" onclick="onCaseSelected()"/>Lowercase
+                    <input type="checkbox" name="uppercase" value="uppercase" id="uppercase" onclick="onCaseSelected()"/>Uppercase
+                </td>
+            </tr>
+            
+            
+            
+            <!--CHAR MAPPING: A text field to indicate desired Char Mapping.-->
+            <tr id="trcharmapping">
+                <td align="right">
+                    <a href="#" class="tooltip left" data-tool="A text box where user can specifically choose where each token can be arranged for the whole session to be generated. Char Mapping only takes the letters, “dlume”.
+                        “d” is for Digits.
+                        “l” is for Lowercase.
+                        “u” is for Uppercase.
+                        “m” is for Mixedcase.
+                        “e” is for Extended.
+                        "><img src="images/help.png" width=12 height=12></a>
+                    Char Mapping:
+                </td>
+                <td>
+                    <input type="text" name="charmapping" required pattern="[dlume]+"/>
+                </td>
+            </tr>
+            
+            
+            <!--VOWELS: A checkbox to include vowels within ID generation.-->
+            <tr id="trvowels" style="display:none;">
+                <td align="right">
+                    <a href="#" class="tooltip left" data-tool="A checkbox where user can select if they want ID’s to be opaque or not. 
+                       Vowels are already pre-checked, and only shows up if the user selects either or both, Lowercase and Uppercase.
+                        Vowels consists of “aeiuoyAEIOUY”."><img src="images/help.png" width=12 height=12></a>
+                    Vowels:
+                </td>
+                <td>
+                    <input type="checkbox" name="vowels" value="vowels"/>Include Vowels
+                </td>
+            </tr>
+            
+            
+            
+            <!--ID LENGTH: A text field for the desired length generated for each ID.-->
+            <tr id="tridlength">
+                <td align="right">
+                    <a href="#" class="tooltip left" data-tool="A text box where user can choose the length of the ID’s to be generated. 
+                        It determines how many characters will be used. It has the parameter of 1-10.">
+                        <img src="images/help.png" width=12 height=12></a>
+                    Root Length:
+                </td>
+                <td>
+                    <input type="number" name="idlength" min="1" max="10"/>
+                </td>
+            </tr>
+            
+            
 
-
-                                <!--ID PREFIX:  A text field for the desired prefix before each generated ID.-->
-                                <tr>
-                                    <td align="right" valign="top">ID Prefix:</td>
-                                    <td><input type="text" name="MinterIDprefix" size="25" maxlength="10" id="IDprefix">
-                                    </td>
-                                </tr>
-
-
-                                <!--ID LENGTH:  A  text field for the desired length generated for each ID.-->
-                                <tr>
-                                    <td align="right" valign="top">ID Length:</td>
-                                    <td><input type="text" name="MinterIDlength" size="25" maxlength="2" id="IDlength"></td>
-                                </tr>
-
-
-                            </table>
-                            <!--  end of overall table -->
-
-                            <p>
-                                <input type="reset" value="Clear Order" name="reset">
-                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                                <input type="SUBMIT" onClick="checkData()" value="Begin Form" name="submit">
-                            </p>
-                            <div id="formErr" style="display:none; color:red">
-                                Please fix the errors noted above before proceeding.
-                            </div>
-
-                            </form>
-
-
-                            </div>
-
-                            </body>
-                            </html>
+            <!--SUBMIT: Submit Button. End of form.-->
+            <tr id="trsubmit">
+                <td>
+                    <td><br><input type="button" name="submit" value="Submit" onclick="check()"/></td>
+                </td>
+            </tr>
+            
+            
+            
+            <!--CONFIRMED: Confirmation message if changes are saved or canceled.-->
+            <tr id="trconfirmed">
+                   <p id="confirmed" align="center"></p>
+            </tr>
+            
+        </table> 
+    </form>
+    
+    
+</body>
+    
+ </html>

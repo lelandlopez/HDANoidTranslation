@@ -33,11 +33,12 @@
     </servlet-mapping>
 
     <!-- Turns off scriptlets in all jsp files as they're conventionally bad -->
+    <!--
     <jsp-config>
         <jsp-property-group>
             <url-pattern>*.jsp</url-pattern>
             <scripting-invalid>true</scripting-invalid>
         </jsp-property-group>
     </jsp-config>
-    
+    -->
 </web-app>

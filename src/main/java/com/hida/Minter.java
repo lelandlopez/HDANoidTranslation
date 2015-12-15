@@ -10,6 +10,8 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import org.codehaus.jackson.map.ObjectMapper;
 import java.util.TreeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Minter class creates formatted ids in json using a variety of parameters.
@@ -44,7 +46,8 @@ public class Minter {
      * Used to add and check ids against database.
      */
     private final DatabaseManager DatabaseManager;
-
+    // Logger; logfile to be stored in resource folder
+    private static final Logger Logger = LoggerFactory.getLogger(Minter.class);
     /**
      * The mapping used to describe range of possible characters at each of the
      * id's root's digits. There are total of 5 different ranges that a charMap
@@ -139,19 +142,21 @@ public class Minter {
         if (isValidRootLength(RootLength)) {
             this.RootLength = RootLength;
         } else {
+            Logger.error("Error with Rootlength of: "+RootLength);
             throw new BadParameterException(RootLength, "RootLength");
         }
         if (isValidPrefix(Prefix)) {
             this.Prefix = Prefix;
         } else {
+            Logger.error("Error with Prefix of: "+Prefix);
             throw new BadParameterException(Prefix, "Prefix");
         }
         //if (isValidTokenType(TokenType)) {
             this.TokenType = TokenType;
-        //} 
-        //else {
-          //  throw new BadParameterException(TokenType, "TokenType");
-        //}
+        } else {
+            Logger.error("Error with TokenType of: "+TokenType);
+            throw new BadParameterException(TokenType, "TokenType");
+        }
 
         // assign base map the appropriate values
         this.BaseMap.put(TokenType.DIGIT, DIGIT_TOKEN);
@@ -174,6 +179,7 @@ public class Minter {
             this.BaseMap.put(TokenType.MIXED_EXTENDED,
                     DIGIT_TOKEN + VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
         }
+        Logger.info("BaseMap values set to: "+BaseMap);
     }
 
     /**
@@ -229,6 +235,7 @@ public class Minter {
             this.BaseMap.put("m", VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
             this.BaseMap.put("e", DIGIT_TOKEN + VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
         }
+        Logger.info("BaseMap values set to: "+BaseMap);
     }
 
         
@@ -279,6 +286,7 @@ public class Minter {
                     long amountTaken = totalPermutations - uniqueIdCounter;
 
                     System.out.println("throwing exception");
+                    Logger.error("Total number of Permutations Exceeded: Total Permutation COunt="+totalPermutations);
                     DatabaseManager.setAmountCreated(
                             Prefix, TokenType, SansVowel, RootLength, amountTaken);
                     throw new NotEnoughPermutationsException(uniqueIdCounter, amount);
@@ -323,7 +331,8 @@ public class Minter {
                 tempIdBaseMap[j] = Rng.nextInt(tokenMap.length());
             }
             Id currentId = new AutoId(Prefix, tempIdBaseMap, tokenMap);
-            //System.out.println("id created: " + currentId);
+            Logger.info("Generated Auto Random ID: "+currentId);
+            System.out.println("id created: " + currentId);
             while (tempIdList.contains(currentId)) {
                 currentId.incrementId();
             }
@@ -358,6 +367,8 @@ public class Minter {
             throws SQLException, IOException, BadParameterException,
             NotEnoughPermutationsException {
         System.out.println("in genIdAutoSequential: " + amount);
+        //Logger.info("in genIdAutoSequential: " + amount);
+        
 
         // checks to see if its possible to produce or add requested amount of
         // ids to database
@@ -367,11 +378,12 @@ public class Minter {
 
         int[] previousIdBaseMap = new int[RootLength];
         AutoId firstId = new AutoId(Prefix, previousIdBaseMap, tokenMap);
-
+        Logger.info("Generated Auto Sequential ID: "+firstId);
         tempIdList.add(firstId);
 
         for (int i = 0; i < amount - 1; i++) {
             AutoId currentId = new AutoId(firstId);
+            Logger.info("Generated Auto Sequential ID: "+currentId);
             currentId.incrementId();
             tempIdList.add(currentId);
             firstId = new AutoId(currentId);
@@ -411,6 +423,7 @@ public class Minter {
                 tempIdBaseMap[j] = Rng.nextInt(tokenMapArray[j].length());
             }
             Id currentId = new CustomId(Prefix, tempIdBaseMap, tokenMapArray);
+            Logger.info("Generated Custom Random ID: "+currentId);
             while (!tempIdList.add(currentId)) {
                 currentId.incrementId();
             }
@@ -438,7 +451,9 @@ public class Minter {
     public Set<Id> genIdCustomSequential(long amount)
             throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException {
         System.out.println("in genIdCustomSequential: " + amount);
+        //Logger.info("in genIdCustomSequential: " + amount);
         if (!isValidAmount(amount)) {
+            //Logger.error("Amount Requested"+amount);
             throw new BadParameterException(amount, "Amount Requested");
         }
         // checks to see if its possible to produce or add requested amount of
@@ -449,11 +464,12 @@ public class Minter {
 
         int[] previousIdBaseMap = new int[RootLength];
         CustomId firstId = new CustomId(Prefix, previousIdBaseMap, tokenMapArray);
-
+        Logger.info("Custom Sequential ID Generated: "+firstId);
         tempIdList.add(firstId);
 
         for (int i = 0; i < amount - 1; i++) {
             CustomId currentId = new CustomId(firstId);
+            Logger.info("Custom Sequential ID Generated: "+currentId);
             currentId.incrementId();
             tempIdList.add(currentId);
             firstId = new CustomId(currentId);
