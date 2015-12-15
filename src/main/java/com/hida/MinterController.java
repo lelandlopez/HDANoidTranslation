@@ -196,7 +196,7 @@ public class MinterController {
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
     public String displayIndex() {
         Logger.info("index page called");
-        return "index";
+        return "settings";
     }
 
     /**
