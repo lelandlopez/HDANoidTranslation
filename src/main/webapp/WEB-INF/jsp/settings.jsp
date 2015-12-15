@@ -92,7 +92,7 @@
 
 <body>
     <!--HDA MINTER FORM: User form to select and customize Persistent ID Minter options.-->
-    <form id="form1" runat="server" onsubmit="submitForm()">
+    <form id="form1" runat="server" onsubmit="submitForm()" method="post" action="confirmation" novalidate>
         
         
         <!--FORM HEADER: A simple header for the form.-->
@@ -144,11 +144,11 @@
                     Minter Type:
                 </td>
                 <td>
-                    <select id="mintergentype" onchange="onMinterSelected()">
+                    <select name="mintType" id="mintergentype" onchange="onMinterSelected()">
                         <option value="auto">Automated</option>
                         <option value="custom">Custom</option>
                     </select>
-                    <select name="minteridorder">
+                    <select name="mintOrder">
                         <option value="random">Random</option>
                         <option value="sequential">Sequential</option>
                     </select>
@@ -230,7 +230,7 @@
             <!--SUBMIT: Submit Button. End of form.-->
             <tr id="trsubmit">
                 <td>
-                    <td><br><input type="button" name="submit" value="Submit" onclick="check()"/></td>
+                    <td><br><input type="submit" name="submit" value="Submit" onclick="check()"/></td>
                 </td>
             </tr>
             

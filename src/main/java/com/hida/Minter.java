@@ -153,10 +153,10 @@ public class Minter {
         }
         //if (isValidTokenType(TokenType)) {
             this.TokenType = TokenType;
-        } else {
-            Logger.error("Error with TokenType of: "+TokenType);
-            throw new BadParameterException(TokenType, "TokenType");
-        }
+        //} else {
+           // Logger.error("Error with TokenType of: "+TokenType);
+            //throw new BadParameterException(TokenType, "TokenType");
+        //}
 
         // assign base map the appropriate values
         this.BaseMap.put(TokenType.DIGIT, DIGIT_TOKEN);

@@ -190,21 +190,7 @@ public class MinterTest implements Comparator<String> {
             DatabaseManager.getPermutations(prefix, tokenType, rootLength, false);
             set = AutoMinter.genIdAutoRandom(expectedAmount);
 
-            /*
-            Scanner JSONParser = new Scanner(JSONIds);
-            while (JSONParser.hasNext()) {
-                String id = JSONParser.nextLine();
-
-                // parse the json for the name parameter. The prepend and the name identifier
-                // are not filtered out because they will not affect uniqueness
-                if (!id.matches("(^[{]$)|(^.*\"id\".*.*$)|(^[}]$)")) {
-                    //System.out.println(id);
-                    // add id to the set to prove uniqueness
-                    set.add(id);
-                }
-            }
-            */
-            
+                        
             // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
 
@@ -239,21 +225,10 @@ public class MinterTest implements Comparator<String> {
             DatabaseManager.getPermutations(prefix, tokenType, rootLength, false);
             set = AutoMinter.genIdAutoSequential(expectedAmount);
 
-            /*
-            Scanner JSONParser = new Scanner(JSONIds);
-            while (JSONParser.hasNext()) {
-                String id = JSONParser.nextLine();
-                if (!id.matches("(^[{]$)|(^.*\"id\".*.*$)|(^[}]$)")) {
-                    //System.out.println(id);
-                    // add id to the set to prove uniqueness
-                    set.add(id);
-                }
-            }
-            // if the amount of ids produced is not the same as the number of ids in a set, fail
-            */
+            
+            // if the amount of ids produced is not the same as the number of ids in a set, fail            
             Assert.assertEquals(set.size(), expectedAmount);
-            Iterator<Id> iter = set.iterator();
-            //Iterator<String> iter = set.iterator();
+            Iterator<Id> iter = set.iterator();            
             String prev = iter.next().toString();
             while (iter.hasNext()) {
                 String current = iter.next().toString();
@@ -294,23 +269,7 @@ public class MinterTest implements Comparator<String> {
             Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
             DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
             set = CustomMinter.genIdCustomRandom(expectedAmount);
-
-            /*
-            Scanner JSONParser = new Scanner(JSONIds);
-            while (JSONParser.hasNext()) {
-                String id = JSONParser.next().trim();
-                // parse the json for the name parameter. The prepend and the name identifier
-                // are not filtered out because they will not affect uniqueness
-                if (!id.matches("(^[{]$)|(^.*\"id\".*$)|(^[}]$)|(\"name\")|(:)|(\\d.*,)")) {
-
-                    Assert.assertEquals(CustomMinter.getTokenType(), tokenType);
-
-                    //System.out.println(id);
-                    // add id to the set to prove uniqueness
-                    set.add(id);
-                }
-            }
-            */
+            
             // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
 
@@ -343,24 +302,7 @@ public class MinterTest implements Comparator<String> {
             DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
             set = CustomMinter.genIdCustomSequential(expectedAmount);
 
-            /*
-            Scanner JSONParser = new Scanner(JSONIds);
-            while (JSONParser.hasNext()) {
-                String id = JSONParser.next().trim();
-                // parse the json for the name parameter. The prepend and the name identifier
-                // are not filtered out because they will not affect uniqueness
-                if (!id.matches("(^[{]$)|(^.*\"id\".*$)|(^[}]$)|(\"name\")|(:)|(\\d.*,)")) {
-
-                    System.out.println("expected: " + tokenType);
-                    System.out.println("getToken: " + CustomMinter.getTokenType());
-                    Assert.assertEquals(CustomMinter.getTokenType(), tokenType);
-
-
-                    // add id to the set to prove uniqueness
-                    set.add(id);
-                }
-            }
-            */
+            
             // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
             Iterator<Id> iter = set.iterator();
