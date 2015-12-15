@@ -1,12 +1,12 @@
 package com.hida;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Random;
 import java.util.Set;
 import org.codehaus.jackson.map.ObjectMapper;
 import java.util.TreeSet;
@@ -18,6 +18,27 @@ import java.util.TreeSet;
  * @author lruffin
  */
 public class Minter {
+
+    /**
+     * Creates and new random number generator to aid in the production of
+     * non-deterministic ids.
+     */
+    private static final SecureRandom Rng = new SecureRandom();
+
+    /**
+     * Contains the range of all the digits
+     */
+    private final static String DIGIT_TOKEN = "0123456789";
+
+    /**
+     * Contains the range of the English alphabet without vowels and y.
+     */
+    private final static String SANS_VOWEL_TOKEN = "bcdfghjklmnpqrstvwxz";
+
+    /**
+     * Contains the range of the English alphabet with vowels and y.
+     */
+    private final static String VOWEL_TOKEN = "abcdefghijklmnopqrstuvwxyz";
 
     /**
      * Used to add and check ids against database.
@@ -57,7 +78,7 @@ public class Minter {
      * </pre>
      *
      */
-    private String TokenType;
+    private TokenType TokenType;
 
     /**
      * Contains the mappings for either tokens or the charMaps. The AutoMinter
@@ -65,7 +86,7 @@ public class Minter {
      * assign character mappings. The values will depend on whether or sansVowel
      * specified in the constructor.
      */
-    private final HashMap<String, String> BaseMap = new HashMap<String, String>();
+    private final HashMap<Object, String> BaseMap = new HashMap<>();
 
     /**
      * This value is not added to the database, however this will be displayed.
@@ -91,22 +112,10 @@ public class Minter {
     private boolean SansVowel;
 
     /**
-     * Contains the range of all the digits
-     */
-    private final String DIGIT_TOKEN = "0123456789";
-
-    /**
-     * Contains the range of the English alphabet without vowels and y.
-     */
-    private final String SANS_VOWEL_TOKEN = "bcdfghjklmnpqrstvwxz";
-
-    /**
-     * Contains the range of the English alphabet with vowels and y.
-     */
-    private final String VOWEL_TOKEN = "abcdefghijklmnopqrstuvwxyz";
-
-    /**
-     * Constructor for AutoMinters
+     * Constructor for AutoMinters. In an AutoMinter scheme, the generation of ids
+     * is dependent on the parameter RootLength and TokenType. The AutoMinter 
+     * generates a sequence of characters equal to the root length. The type of characters
+     * used is based on TokenType.
      *
      * @param DatabaseManager Used to add and check ids against database.
      * @param Prepend Designates the format of the id. Will not appear in
@@ -120,8 +129,8 @@ public class Minter {
      * @throws BadParameterException thrown whenever a malformed or invalid
      * parameter is passed
      */
-    public Minter(DatabaseManager DatabaseManager, String Prepend, String TokenType, int RootLength, String Prefix,
-            boolean sansVowel) throws BadParameterException {
+    public Minter(DatabaseManager DatabaseManager, String Prepend, TokenType TokenType,
+            int RootLength, String Prefix, boolean sansVowel) throws BadParameterException {
         this.DatabaseManager = DatabaseManager;
         this.Prepend = Prepend;
         this.SansVowel = sansVowel;
@@ -137,35 +146,41 @@ public class Minter {
         } else {
             throw new BadParameterException(Prefix, "Prefix");
         }
-        if (isValidTokenType(TokenType)) {
+        //if (isValidTokenType(TokenType)) {
             this.TokenType = TokenType;
-        } else {
-            throw new BadParameterException(TokenType, "TokenType");
-        }
+        //} 
+        //else {
+          //  throw new BadParameterException(TokenType, "TokenType");
+        //}
 
         // assign base map the appropriate values
-        this.BaseMap.put("DIGIT", DIGIT_TOKEN);
+        this.BaseMap.put(TokenType.DIGIT, DIGIT_TOKEN);
         if (sansVowel) {
-            this.BaseMap.put("LOWERCASE", SANS_VOWEL_TOKEN);
-            this.BaseMap.put("UPPERCASE", SANS_VOWEL_TOKEN.toUpperCase());
-            this.BaseMap.put("MIXEDCASE", SANS_VOWEL_TOKEN + SANS_VOWEL_TOKEN.toUpperCase());
-            this.BaseMap.put("LOWER_EXTENDED", DIGIT_TOKEN + SANS_VOWEL_TOKEN);
-            this.BaseMap.put("UPPER_EXTENDED", DIGIT_TOKEN + SANS_VOWEL_TOKEN.toUpperCase());
-            this.BaseMap.put("MIXED_EXTENDED",
+            this.BaseMap.put(TokenType.LOWERCASE, SANS_VOWEL_TOKEN);
+            this.BaseMap.put(TokenType.UPPERCASE, SANS_VOWEL_TOKEN.toUpperCase());
+            this.BaseMap.put(TokenType.MIXEDCASE, 
+                    SANS_VOWEL_TOKEN + SANS_VOWEL_TOKEN.toUpperCase());
+            this.BaseMap.put(TokenType.LOWER_EXTENDED, DIGIT_TOKEN + SANS_VOWEL_TOKEN);
+            this.BaseMap.put(TokenType.UPPER_EXTENDED, 
+                    DIGIT_TOKEN + SANS_VOWEL_TOKEN.toUpperCase());
+            this.BaseMap.put(TokenType.MIXED_EXTENDED,
                     DIGIT_TOKEN + SANS_VOWEL_TOKEN + SANS_VOWEL_TOKEN.toUpperCase());
         } else {
-            this.BaseMap.put("LOWERCASE", VOWEL_TOKEN);
-            this.BaseMap.put("UPPERCASE", VOWEL_TOKEN.toUpperCase());
-            this.BaseMap.put("MIXEDCASE", VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
-            this.BaseMap.put("LOWER_EXTENDED", DIGIT_TOKEN + VOWEL_TOKEN);
-            this.BaseMap.put("UPPER_EXTENDED", DIGIT_TOKEN + VOWEL_TOKEN.toUpperCase());
-            this.BaseMap.put("MIXED_EXTENDED",
+            this.BaseMap.put(TokenType.LOWERCASE, VOWEL_TOKEN);
+            this.BaseMap.put(TokenType.UPPERCASE, VOWEL_TOKEN.toUpperCase());
+            this.BaseMap.put(TokenType.MIXEDCASE, VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
+            this.BaseMap.put(TokenType.LOWER_EXTENDED, DIGIT_TOKEN + VOWEL_TOKEN);
+            this.BaseMap.put(TokenType.UPPER_EXTENDED, DIGIT_TOKEN + VOWEL_TOKEN.toUpperCase());
+            this.BaseMap.put(TokenType.MIXED_EXTENDED,
                     DIGIT_TOKEN + VOWEL_TOKEN + VOWEL_TOKEN.toUpperCase());
         }
     }
 
     /**
-     * Constructor for CustomMinters
+     * Constructor for CustomMinters. In a CustomMinter scheme, the generation of ids
+     * is dependent on the parameter CharMap. The CustomMinter will generate as many
+     * characters as the length of CharMap. Each letter of the CharMap dictates the
+     * range of characters in it's position.
      *
      * @param DatabaseManager Used to add and check ids against database.
      * @param CharMap The mapping used to describe range of possible characters
@@ -216,6 +231,7 @@ public class Minter {
         }
     }
 
+        
     /**
      * Continuously increments a set of ids until the set is completely filled
      * with unique ids.
@@ -235,13 +251,15 @@ public class Minter {
         // Used to count the number of unique ids. Size methods aren't used because int is returned
         long uniqueIdCounter = 0;
 
-        // Declares and initializes a list that holds unique values. 
-        // If order matters, tree set is used.
+        /* 
+         Declares and initializes a list that holds unique values. 
+         If order matters, tree set is used.
+         */
         Set<Id> uniqueList;
         if (order) {
-            uniqueList = new TreeSet();
+            uniqueList = new TreeSet<>();
         } else {
-            uniqueList = new LinkedHashSet(original.size());
+            uniqueList = new LinkedHashSet<>(original.size());
         }
 
         // iterate through every id 
@@ -251,7 +269,8 @@ public class Minter {
 
             // continuously increments invalid or non-unique ids
             while (!DatabaseManager.isValidId(currentId) || uniqueList.contains(currentId)) {
-                /* if counter exceeds totalPermutations, then id has iterated through every 
+                /* 
+                 if counter exceeds totalPermutations, then id has iterated through every 
                  possible permutation. Related format is updated as a quick look-up reference
                  with the number of ids that were inadvertedly been created using other formats.
                  NotEnoughPermutationsException is thrown stating remaining number of ids.
@@ -291,20 +310,17 @@ public class Minter {
      * parameter is passed
      * @throws java.io.IOException
      */
-    public String genIdAutoRandom(long amount) throws SQLException, IOException,
+    public Set<Id> genIdAutoRandom(long amount) throws SQLException, IOException,
             NotEnoughPermutationsException, BadParameterException {
         System.out.println("in genIdAutoRandom: " + amount);
-        // checks to see if its possible to produce or add requested amount of
-        // ids to database
         String tokenMap = BaseMap.get(TokenType);
 
-        Random rng = new Random();
         Set<Id> tempIdList = new LinkedHashSet((int) amount);
 
         for (int i = 0; i < amount; i++) {
             int[] tempIdBaseMap = new int[RootLength];
             for (int j = 0; j < RootLength; j++) {
-                tempIdBaseMap[j] = rng.nextInt(tokenMap.length());
+                tempIdBaseMap[j] = Rng.nextInt(tokenMap.length());
             }
             Id currentId = new AutoId(Prefix, tempIdBaseMap, tokenMap);
             //System.out.println("id created: " + currentId);
@@ -320,8 +336,10 @@ public class Minter {
 
         DatabaseManager.addIdList(tempIdList, amount, Prefix, TokenType, SansVowel, RootLength);
 
+        
+        return tempIdList;
         //System.out.println("returning json list");
-        return convertListToJson(tempIdList);
+//        return convertListToJson(tempIdList);
 
     }
 
@@ -333,10 +351,11 @@ public class Minter {
      * @return a JSON list of unique ids.
      * @throws SQLException thrown whenever there is an error with the database
      * @throws java.io.IOException
-     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
-    public String genIdAutoSequential(long amount)
-            throws SQLException, IOException, BadParameterException, 
+    public Set<Id> genIdAutoSequential(long amount)
+            throws SQLException, IOException, BadParameterException,
             NotEnoughPermutationsException {
         System.out.println("in genIdAutoSequential: " + amount);
 
@@ -364,7 +383,8 @@ public class Minter {
 
         DatabaseManager.addIdList(tempIdList, amount, Prefix, TokenType, SansVowel, RootLength);
 
-        return convertListToJson(tempIdList);
+        return tempIdList;
+        //return convertListToJson(tempIdList);
     }
 
     /**
@@ -374,21 +394,21 @@ public class Minter {
      * @return a JSON list of unique ids.
      * @throws SQLException thrown whenever there is an error with the database
      * @throws java.io.IOException
-     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
-    public String genIdCustomRandom(long amount)
-            throws SQLException, IOException, BadParameterException, 
-            NotEnoughPermutationsException {  
+    public Set<Id> genIdCustomRandom(long amount)
+            throws SQLException, IOException, BadParameterException,
+            NotEnoughPermutationsException {
         System.out.println("in genIdCustomRandom: " + amount);
         String[] tokenMapArray = getBaseCharMapping();
-
-        Random rng = new Random();
+              
         Set<Id> tempIdList = new LinkedHashSet((int) amount);
 
         for (int i = 0; i < amount; i++) {
             int[] tempIdBaseMap = new int[RootLength];
             for (int j = 0; j < RootLength; j++) {
-                tempIdBaseMap[j] = rng.nextInt(tokenMapArray[j].length());
+                tempIdBaseMap[j] = Rng.nextInt(tokenMapArray[j].length());
             }
             Id currentId = new CustomId(Prefix, tempIdBaseMap, tokenMapArray);
             while (!tempIdList.add(currentId)) {
@@ -401,7 +421,9 @@ public class Minter {
         tempIdList = rollIds(tempIdList, false, totalPermutations, amount);
 
         DatabaseManager.addIdList(tempIdList, amount, Prefix, TokenType, SansVowel, RootLength);
-        return convertListToJson(tempIdList);
+        
+        return tempIdList;
+        //return convertListToJson(tempIdList);
     }
 
     /**
@@ -411,8 +433,9 @@ public class Minter {
      * @return a JSON list of unique ids.
      * @throws SQLException thrown whenever there is an error with the database
      * @throws java.io.IOException
+     * @throws com.hida.BadParameterException
      */
-    public String genIdCustomSequential(long amount)
+    public Set<Id> genIdCustomSequential(long amount)
             throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException {
         System.out.println("in genIdCustomSequential: " + amount);
         if (!isValidAmount(amount)) {
@@ -441,7 +464,8 @@ public class Minter {
         tempIdList = rollIds(tempIdList, true, totalPermutations, amount);
         DatabaseManager.addIdList(tempIdList, amount, Prefix, TokenType, SansVowel, RootLength);
 
-        return convertListToJson(tempIdList);
+        return tempIdList;
+        //return convertListToJson(tempIdList);
     }
 
     /**
@@ -450,34 +474,35 @@ public class Minter {
      * @param charMap The mapping used to describe range of possible characters
      * at each of the id's root's digits
      * @return the token equivalent to the charMap
-     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
-    final protected String convertToToken(String charMap) throws BadParameterException {
+    private TokenType convertToToken(String charMap) throws BadParameterException {
 
         // true if charMap only contains character 'd'
         if (charMap.matches("^[d]+$")) {
-            return "DIGIT";
+            return TokenType.DIGIT;
         } // true if charMap only contains character 'l'.
         else if (charMap.matches("^[l]+$")) {
-            return "LOWERCASE";
+            return TokenType.LOWERCASE;
         } // true if charMap only contains character 'u'
         else if (charMap.matches("^[u]+$")) {
-            return "UPPERCASE";
+            return TokenType.UPPERCASE;
         } // true if charMap only contains character groups 'lu' or 'm'
         else if (charMap.matches("(^(?=[lum]*l)(?=[lum]*u)[lum]*$)" + "|"
                 + "(^(?=[lum]*m)[lum]*$)")) {
-            return "MIXEDCASE";
+            return TokenType.MIXEDCASE;
         } // true if charMap only contains characters 'dl'
         else if (charMap.matches("(^(?=[dl]*l)(?=[ld]*d)[dl]*$)")) {
-            return "LOWER_EXTENDED";
+            return TokenType.LOWER_EXTENDED;
         } // true if charMap only contains characters 'du'
         else if (charMap.matches("(^(?=[du]*u)(?=[du]*d)[du]*$)")) {
-            return "UPPER_EXTENDED";
+            return TokenType.UPPER_EXTENDED;
         } // true if charMap at least contains character groups 'dlu' or 'md' or 'e' respectively
         else if (charMap.matches("(^(?=[dlume]*d)(?=[dlume]*l)(?=[dlume]*u)[dlume]*$)" + "|"
                 + "(^(?=[dlume]*m)(?=[dlume]*d)[dlume]*$)" + "|"
                 + "(^(?=[dlume]*e)[dlume]*$)")) {
-            return "MIXED_EXTENDED";
+            return TokenType.MIXED_EXTENDED;
         } else {
             throw new BadParameterException(charMap, "detected in getToken method");
         }
@@ -499,36 +524,8 @@ public class Minter {
         return baseTokenMapArray;
     }
 
-    /**
-     * Creates a Json object based off a list of ids given in the parameter
-     *
-     * @return A reference to a String that contains Json list of ids
-     */
-    private String convertListToJson(Set<Id> list) throws IOException {
-        // Jackson objects to create formatted Json string
-        String jsonString = "";
-        ObjectMapper mapper = new ObjectMapper();
-        Object formattedJson;
-
-        // Object used to iterate through list of ids
-        Iterator<Id> iterator = list.iterator();
-        for (int i = 0; iterator.hasNext(); i++) {
-
-            // Creates desired JSON format. Also adds prepend to the string to be displayed
-            // to the client
-            String id = String.format("{\"id\":%d,\"name\":\"%s%s\"}",
-                    i, Prepend, iterator.next());
-
-            formattedJson = mapper.readValue(id, Object.class);
-
-            // append formatted json
-            jsonString += mapper.writerWithDefaultPrettyPrinter().
-                    writeValueAsString(formattedJson) + "\n";
-        }
-
-        return jsonString;
-    }
     
+
     /**
      * Checks whether or not the prefix is valid.
      *
@@ -566,14 +563,17 @@ public class Minter {
      * @param tokenType Designates what characters are contained in the id's
      * root.
      * @return True if its equal to one of the pre-defined tokens.
-     */
-    public final boolean isValidTokenType(String tokenType) {
+     
+    public final boolean isValidTokenType(TokenType tokenType) {
+        
         return tokenType.equals("DIGIT") || tokenType.equals("LOWERCASE")
                 || tokenType.equals("UPPERCASE") || tokenType.equals("MIXEDCASE")
                 || tokenType.equals("LOWER_EXTENDED") || tokenType.equals("UPPER_EXTENDED")
                 || tokenType.equals("MIXED_EXTENDED");
+        
+        
     }
-
+*/
     /**
      * Checks whether or not the given charMap is valid for this minter.
      *
@@ -595,11 +595,11 @@ public class Minter {
         this.CharMap = CharMap;
     }
 
-    public String getTokenType() {
+    public TokenType getTokenType() {
         return TokenType;
     }
 
-    public void setTokenType(String TokenType) {
+    public void setTokenType(TokenType TokenType) {
         this.TokenType = TokenType;
     }
 
@@ -760,11 +760,22 @@ public class Minter {
             return Prefix + this.getRootName();
         }
 
-        // getters and setters
+        /**
+         * Retrieves the TokenMapArray assigned to this id
+         *
+         * @return The array assigned to this id.
+         */
         public String[] getTokenMapArray() {
             return TokenMapArray;
         }
 
+        /**
+         * Sets the TokenMapArray to this id. Note that the the length of the
+         * array must be of the same length id, otherwise index out of bounds
+         * exceptions will be thrown.
+         *
+         * @param TokenMapArray The array to be assigned.
+         */
         public void setTokenMapArray(String[] TokenMapArray) {
             this.TokenMapArray = TokenMapArray;
         }

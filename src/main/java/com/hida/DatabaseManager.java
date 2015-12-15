@@ -25,10 +25,15 @@ public class DatabaseManager extends Function {
     private final String SANS_VOWEL_COLUMN = "SANS_VOWEL";
     private final String TOKEN_TYPE_COLUMN = "TOKEN_TYPE";
     private final String ROOT_LENGTH_COLUMN = "ROOT_LENGTH";
+    private final String PREPEND_COLUMN = "PREPEND";
+    private final String AUTO_COLUMN = "IS_AUTO";
+    private final String RANDOM_COLUMN = "IS_RANDOM";
+    private final String CHAR_MAP_COLUMN = "CHAR_MAP";
 
     // names of the tables in the database
     private final String ID_TABLE = "MINTED_IDS";
     private final String FORMAT_TABLE = "FORMAT";
+    private final String SETTINGS_TABLE = "SETTINGS";
 
     /**
      * A connection to a database
@@ -51,8 +56,8 @@ public class DatabaseManager extends Function {
     private boolean isTableCreatedFlag = false;
 
     // holds information about the database. 
-    private String DatabasePath;
-    private String DatabaseName;
+    private final String DatabasePath;
+    private final String DatabaseName;
 
     /**
      *
@@ -97,36 +102,182 @@ public class DatabaseManager extends Function {
 
         // allow the database connection to use regular expressions
         Function.create(DatabaseConnection, "REGEXP", new DatabaseManager());
+        if (this.isTableCreatedFlag) {
+            return true;
+        } else {
+            if (!tableExists(ID_TABLE)) {
 
-        if (!isDbSetup()) {
-            System.out.println("creating table");
+                System.out.println("creating table");
 
-            // string to hold a query that sets up table in SQLite3 syntax
-            String createIdTable = String.format("CREATE TABLE %s "
-                    + "(%s PRIMARY KEY NOT NULL);", ID_TABLE, ID_COLUMN);
-            String createFormatTable = String.format("CREATE TABLE %s "
-                    + "(%s INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + "%s TEXT NOT NULL, "
-                    + "%s BOOLEAN NOT NULL, "
-                    + "%s TEXT NOT NULL, "
-                    + "%s INT NOT NULL, "
-                    + "%s UNSIGNED BIG INT NOT NULL);",
-                    FORMAT_TABLE, ID_COLUMN, PREFIX_COLUMN, SANS_VOWEL_COLUMN,
-                    TOKEN_TYPE_COLUMN, ROOT_LENGTH_COLUMN, AMOUNT_CREATED_COLUMN);
+                // string to hold a query that sets up table in SQLite3 syntax
+                String createIdTable = String.format("CREATE TABLE %s "
+                        + "(%s PRIMARY KEY NOT NULL);", ID_TABLE, ID_COLUMN);
 
-            // a database statement that allows database/webservice communication 
-            Statement databaseStatement = DatabaseConnection.createStatement();
-            System.out.println(createFormatTable);
-            // create non-existing table and clean-up
-            databaseStatement.executeUpdate(createIdTable);
-            databaseStatement.executeUpdate(createFormatTable);
+                // a database statement that allows database/webservice communication 
+                Statement databaseStatement = DatabaseConnection.createStatement();
 
-            databaseStatement.close();
+                // create non-existing table and clean-up
+                databaseStatement.executeUpdate(createIdTable);
+            }
+            if (!tableExists(FORMAT_TABLE)) {
+                String createFormatTable = String.format("CREATE TABLE %s "
+                        + "(%s INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + "%s TEXT NOT NULL, "
+                        + "%s BOOLEAN NOT NULL, "
+                        + "%s TEXT NOT NULL, "
+                        + "%s INT NOT NULL, "
+                        + "%s UNSIGNED BIG INT NOT NULL);",
+                        FORMAT_TABLE, ID_COLUMN, PREFIX_COLUMN, SANS_VOWEL_COLUMN,
+                        TOKEN_TYPE_COLUMN, ROOT_LENGTH_COLUMN, AMOUNT_CREATED_COLUMN);
+
+                Statement databaseStatement = DatabaseConnection.createStatement();
+                databaseStatement.executeUpdate(createFormatTable);
+                databaseStatement.close();
+            }
+            if (!tableExists(SETTINGS_TABLE)) {
+                String createSettingsTable = String.format("CREATE TABLE %s "
+                        + "(%s TEXT, "
+                        + "%s TEXT, "
+                        + "%s TEXT, "
+                        + "%s INT, "
+                        + "%s TEXT, "
+                        + "%s BOOLEAN NOT NULL, "
+                        + "%s BOOLEAN NOT NULL, "
+                        + "%s BOOLEAN NOT NULL);",
+                        SETTINGS_TABLE, PREPEND_COLUMN, PREFIX_COLUMN, TOKEN_TYPE_COLUMN,
+                        ROOT_LENGTH_COLUMN, CHAR_MAP_COLUMN, AUTO_COLUMN, RANDOM_COLUMN,
+                        SANS_VOWEL_COLUMN);
+                Statement databaseStatement = DatabaseConnection.createStatement();
+                databaseStatement.executeUpdate(createSettingsTable);
+                databaseStatement.close();
+
+                // populate the settings table with default settings
+                assignDefaultSettings();
+            }
         }
+        this.isTableCreatedFlag = true;
+
         return true;
 
     }
 
+    /**
+     * Assigns default values to the settings table. Default values are as
+     * follows:
+     * <pre>
+     * prepend = ""
+     * prefix = "xyz"
+     * tokenType = "DIGIT"
+     * rootLength = 5
+     * charMap = "ddlume"
+     * auto = true
+     * random = true
+     * sansVowels = true
+     * </pre>
+     *
+     * @throws SQLException thrown whenever there is an error with the database
+     */
+    private void assignDefaultSettings() throws SQLException {
+        System.out.println("in assignDefaultSettings");
+        Statement databaseStatement = DatabaseConnection.createStatement();
+
+        String sqlQuery = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) "
+                + "VALUES ('%s', '%s', %d, '%s', %d, %d, %d);",
+                SETTINGS_TABLE, PREFIX_COLUMN, TOKEN_TYPE_COLUMN,
+                ROOT_LENGTH_COLUMN, CHAR_MAP_COLUMN, AUTO_COLUMN, RANDOM_COLUMN,
+                SANS_VOWEL_COLUMN, "xyz", "MIXED_EXTENDED", 5, "ddlume", 1, 1, 1);
+
+        databaseStatement.executeUpdate(sqlQuery);
+
+        databaseStatement.close();
+    }
+
+    /**
+     *
+     * @param prepend
+     * @param prefix
+     * @param tokenType
+     * @param rootLength
+     * @param isAuto
+     * @param isRandom
+     * @param sansVowel
+     * @throws SQLException
+     */
+    public void assignSettings(String prepend, String prefix, String tokenType, int rootLength,
+            boolean isAuto, boolean isRandom, boolean sansVowel) throws SQLException {
+        System.out.println("in assignSettings 1");
+        Statement databaseStatement = DatabaseConnection.createStatement();
+
+        int autoFlag = (isAuto) ? 1 : 0;
+        int randomFlag = (isRandom) ? 1 : 0;
+        int vowelFlag = (sansVowel) ? 1 : 0;
+        String sqlQuery = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) "
+                + "VALUES ('%s', '%s', '%s', %d, %d, %d, %d);",
+                SETTINGS_TABLE, PREPEND_COLUMN, PREFIX_COLUMN, TOKEN_TYPE_COLUMN,
+                ROOT_LENGTH_COLUMN, AUTO_COLUMN, RANDOM_COLUMN,
+                SANS_VOWEL_COLUMN, prepend, prefix, tokenType, rootLength,
+                autoFlag, randomFlag, vowelFlag);
+
+        databaseStatement.executeUpdate(sqlQuery);
+
+        databaseStatement.close();
+    }
+
+    /**
+     *
+     * @param prepend
+     * @param prefix
+     * @param charMap
+     * @param isAuto
+     * @param isRandom
+     * @param sansVowel
+     * @throws SQLException
+     */
+    public void assignSettings(String prepend, String prefix, String charMap, boolean isAuto,
+            boolean isRandom, boolean sansVowel) throws SQLException {
+        System.out.println("in assignSettings 2");
+        Statement databaseStatement = DatabaseConnection.createStatement();
+
+        int autoFlag = (isAuto) ? 1 : 0;
+        int randomFlag = (isRandom) ? 1 : 0;
+        int vowelFlag = (sansVowel) ? 1 : 0;
+        String sqlQuery = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s) "
+                + "VALUES ('%s', '%s', '%s', %d, %d, %d);",
+                SETTINGS_TABLE, PREPEND_COLUMN, PREFIX_COLUMN, CHAR_MAP_COLUMN,
+                AUTO_COLUMN, RANDOM_COLUMN, SANS_VOWEL_COLUMN, prepend, prefix, charMap,
+                autoFlag, randomFlag, vowelFlag);
+
+        databaseStatement.executeUpdate(sqlQuery);
+
+        databaseStatement.close();
+    }
+    
+    /**
+     * 
+     * @param column
+     * @return
+     * @throws SQLException 
+     */
+    public Object retrieveSetting(String column) throws SQLException{
+        System.out.println("in retrieve settings");
+        Statement databaseStatement = DatabaseConnection.createStatement();
+
+        
+        String sqlQuery = String.format("SELECT %s FROM %s;",
+                column, SETTINGS_TABLE);
+
+        Object parameter = null;
+        ResultSet result = databaseStatement.executeQuery(sqlQuery);
+        
+        if(result.next()){            
+            parameter = result.getObject(column);
+        }
+                                
+        databaseStatement.close();
+        return parameter;
+    }
+
+   
     /**
      * Adds a requested amount of formatted ids to the database.
      *
@@ -142,7 +293,7 @@ public class DatabaseManager extends Function {
      * @throws BadParameterException thrown whenever a malformed or invalid
      * parameter is passed
      */
-    public void addIdList(Set<Id> list, long amountCreated, String prefix, String tokenType,
+    public void addIdList(Set<Id> list, long amountCreated, String prefix, TokenType tokenType,
             boolean sansVowel, int rootLength) throws SQLException, BadParameterException {
         System.out.println("adding ids...");
         String valueQuery = "";
@@ -161,7 +312,7 @@ public class DatabaseManager extends Function {
             }
 
             /* 500 is used because, to my knowledge, the max number of values that 
-             can be inserrted at once is 500. The condition is also met whenever the
+             can be inserted at once is 500. The condition is also met whenever the
              id is the last id in the list.            
              */
             if (counter == 500 || !listIterator.hasNext()) {
@@ -235,7 +386,8 @@ public class DatabaseManager extends Function {
      * root
      * @return a regular expression
      */
-    private String retrieveRegex(String tokenType, boolean sansVowel) throws BadParameterException {
+    private String retrieveRegex(String tokenType, boolean sansVowel)
+            throws BadParameterException {
 
         if (tokenType.equals("DIGIT")) {
             return String.format("([\\d])");
@@ -269,24 +421,36 @@ public class DatabaseManager extends Function {
      * @throws BadParameterException thrown whenever a malformed or invalid
      * parameter is passed
      */
-    public long getTotalPermutations(String tokenType, int rootLength, boolean sansVowel)
+    public long getTotalPermutations(TokenType tokenType, int rootLength, boolean sansVowel)
             throws BadParameterException {
         System.out.println("in getTotalPermutations 1");
+
+        // get the base of each character
         int base;
-        if (tokenType.equals("DIGIT")) {
-            base = 10;
-        } else if (tokenType.equals("LOWERCASE") || tokenType.equals("UPPERCASE")) {
-            base = (sansVowel) ? 20 : 26;
-        } else if (tokenType.equals("MIXEDCASE")) {
-            base = (sansVowel) ? 40 : 52;
-        } else if (tokenType.equals("LOWER_EXTENDED") || tokenType.equals("UPPER_EXTENDED")) {
-            base = (sansVowel) ? 30 : 36;
-        } else if (tokenType.equals("MIXED_EXTENDED")) {
-            base = (sansVowel) ? 50 : 62;
-        } else {
-            throw new BadParameterException(tokenType, "Token Type");
+        switch (tokenType) {
+            case DIGIT:
+                base = 10;
+                break;
+            case LOWERCASE:
+            case UPPERCASE:
+                base = (sansVowel) ? 20 : 26;
+                break;
+            case MIXEDCASE:
+                base = (sansVowel) ? 40 : 52;
+                break;
+            case LOWER_EXTENDED:
+            case UPPER_EXTENDED:
+                base = (sansVowel) ? 30 : 36;
+                break;
+            case MIXED_EXTENDED:
+                base = (sansVowel) ? 50 : 62;
+                break;
+            default:
+                throw new BadParameterException(tokenType, "Token Type");
         }
 
+        // raise it to the power of how ever long the rootLength is
+        System.out.println("total permutations = " + ((long) Math.pow(base, rootLength)));
         return ((long) Math.pow(base, rootLength));
     }
 
@@ -298,7 +462,8 @@ public class DatabaseManager extends Function {
      * at each of the id's root's digits.
      * @param sansVowel Designates whether or not the id's root contains vowels.
      * @return the number of total possible permutations
-* @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
     public long getTotalPermutations(String charMap, boolean sansVowel)
             throws BadParameterException {
@@ -333,8 +498,8 @@ public class DatabaseManager extends Function {
      * @param rootLength Designates the length of the id's root.
      * @throws SQLException thrown whenever there is an error with the database
      */
-    protected void createFormat(String prefix, String tokenType, boolean sansVowel, int rootLength)
-            throws SQLException {
+    protected void createFormat(String prefix, TokenType tokenType, boolean sansVowel,
+            int rootLength) throws SQLException {
         System.out.println("in createFormat");
         Statement databaseStatement = DatabaseConnection.createStatement();
 
@@ -362,8 +527,8 @@ public class DatabaseManager extends Function {
      * @param amountCreated The number of ids to add to the format.
      * @throws SQLException thrown whenever there is an error with the database.
      */
-    public void addAmountCreated(String prefix, String tokenType, boolean sansVowel, int rootLength,
-            long amountCreated) throws SQLException {
+    public void addAmountCreated(String prefix, TokenType tokenType, boolean sansVowel,
+            int rootLength, long amountCreated) throws SQLException {
         System.out.println("in addAmountCreated");
         Statement databaseStatement = DatabaseConnection.createStatement();
 
@@ -396,8 +561,8 @@ public class DatabaseManager extends Function {
      * @param amountCreated The number of ids to insert into the format.
      * @throws SQLException thrown whenever there is an error with the database.
      */
-    protected void setAmountCreated(String prefix, String tokenType, boolean sansVowel, int rootLength,
-            long amountCreated) throws SQLException {
+    protected void setAmountCreated(String prefix, TokenType tokenType, boolean sansVowel,
+            int rootLength, long amountCreated) throws SQLException {
         System.out.println("in setAmountCreated");
         Statement databaseStatement = DatabaseConnection.createStatement();
 
@@ -426,10 +591,10 @@ public class DatabaseManager extends Function {
      * format was not found.
      * @throws SQLException thrown whenever there is an error with the database.
      */
-    public long getAmountCreated(String prefix, String tokenType, boolean sansVowel,
+    public long getAmountCreated(String prefix, TokenType tokenType, boolean sansVowel,
             int rootLength) throws SQLException {
 
-        System.out.println("in getAmountCreataed");
+        System.out.println("in getAmountCreated");
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         int vowelFlag = (sansVowel) ? 1 : 0;
@@ -466,7 +631,7 @@ public class DatabaseManager extends Function {
      * @return true if the format exists, false otherwise.
      * @throws SQLException thrown whenever there is an error with the database.
      */
-    public boolean formatExists(String prefix, String tokenType, boolean sansVowel,
+    public boolean formatExists(String prefix, TokenType tokenType, boolean sansVowel,
             int rootLength) throws SQLException {
         System.out.println("in formatExists");
         Statement databaseStatement = DatabaseConnection.createStatement();
@@ -512,9 +677,10 @@ public class DatabaseManager extends Function {
      * @return the number of possible permutations that can be added to the
      * database with the given parameters
      * @throws SQLException thrown whenever there is an error with the database
-     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
-    public long getPermutations(String prefix, String tokenType, int rootLength,
+    public long getPermutations(String prefix, TokenType tokenType, int rootLength,
             boolean sansVowel)
             throws SQLException, BadParameterException {
         System.out.println("in getPermutations 1");
@@ -527,7 +693,8 @@ public class DatabaseManager extends Function {
             System.out.println("\tformat doesnt exist");
             this.createFormat(prefix, tokenType, sansVowel, rootLength);
             return totalPermutations;
-        } else { // format was found
+        } else {
+            // format was found
             System.out.println("\tformat exists");
             return totalPermutations - amountCreated;
         }
@@ -557,10 +724,11 @@ public class DatabaseManager extends Function {
      * @return the number of possible permutations that can be added to the
      * database with the given parameters
      * @throws SQLException thrown whenever there is an error with the database
-     * @throws BadParameterException thrown whenever a malformed or invalid parameter is passed
+     * @throws BadParameterException thrown whenever a malformed or invalid
+     * parameter is passed
      */
-    public long getPermutations(String prefix, boolean sansVowel, String charMap, String tokenType)
-            throws SQLException, BadParameterException {
+    public long getPermutations(String prefix, boolean sansVowel, String charMap,
+            TokenType tokenType) throws SQLException, BadParameterException {
         System.out.println("in getPermutations 2");
         // calculate the total number of possible permuations        
         long totalPermutations = this.getTotalPermutations(charMap, sansVowel);
@@ -571,7 +739,8 @@ public class DatabaseManager extends Function {
             System.out.println("\tformat doesnt exist");
             this.createFormat(prefix, tokenType, sansVowel, charMap.length());
             return totalPermutations;
-        } else { // format was found
+        } else {
+            // format was found
             System.out.println("\tformat exists");
             return totalPermutations - amountCreated;
         }
@@ -704,6 +873,33 @@ public class DatabaseManager extends Function {
     }
 
     /**
+     * Checks to see if the database for the existence of a particular table. If
+     * the database returns a null value then the given tableName does not exist
+     * within the database.
+     *
+     * @param c connection to the database
+     * @return true if table exists in database, false otherwise
+     * @throws SQLException thrown whenever there is an error with the database
+     */
+    private boolean tableExists(String tableName) throws SQLException {
+        DatabaseMetaData metaData = DatabaseConnection.getMetaData();
+
+        ResultSet databaseResponse = metaData.getTables(null, null, tableName, null);
+        boolean flag;
+        System.out.println("in tableExists");
+
+        if (!databaseResponse.next()) {
+            flag = false;
+        } else {
+            flag = true;
+        }
+
+        // close connection
+        databaseResponse.close();
+        return flag;
+    }
+
+    /**
      * Creates a method to allow a database connection to use regular
      * expressions.
      *
@@ -722,7 +918,44 @@ public class DatabaseManager extends Function {
     }
 
     /* typical getters and setters */
-    public String getCOLUMN_NAME() {
+
+    public String getPREFIX_COLUMN() {
+        return PREFIX_COLUMN;
+    }
+
+    public String getSANS_VOWEL_COLUMN() {
+        return SANS_VOWEL_COLUMN;
+    }
+
+    public String getTOKEN_TYPE_COLUMN() {
+        return TOKEN_TYPE_COLUMN;
+    }
+
+    public String getROOT_LENGTH_COLUMN() {
+        return ROOT_LENGTH_COLUMN;
+    }
+
+    public String getPREPEND_COLUMN() {
+        return PREPEND_COLUMN;
+    }
+
+    public String getAUTO_COLUMN() {
+        return AUTO_COLUMN;
+    }
+
+    public String getRANDOM_COLUMN() {
+        return RANDOM_COLUMN;
+    }
+
+    public String getCHAR_MAP_COLUMN() {
+        return CHAR_MAP_COLUMN;
+    }
+
+    public String getSETTINGS_TABLE() {
+        return SETTINGS_TABLE;
+    }
+        
+    public String getID_COLUMN() {
         return ID_COLUMN;
     }
 
@@ -745,5 +978,7 @@ public class DatabaseManager extends Function {
     public String getDatabaseName() {
         return DatabaseName;
     }
+    
+    
 
 }

@@ -1,14 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package test.hida;
 
 import com.hida.BadParameterException;
 import com.hida.DatabaseManager;
+import com.hida.Id;
 import com.hida.Minter;
 import com.hida.NotEnoughPermutationsException;
+import com.hida.TokenType;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -23,6 +20,10 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import java.util.Scanner;
 import java.util.Set;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 
 
@@ -55,13 +56,13 @@ public class MinterTest implements Comparator<String> {
     public static Object[][] AutoMinterParameters() {
         Random rng = new Random();
         return new Object[][]{
-            {rng.nextInt(90) + 10, "DIGIT"},
-            {rng.nextInt(90) + 10, "LOWERCASE"},
-            {rng.nextInt(90) + 10, "UPPERCASE"},
-            {rng.nextInt(90) + 10, "MIXEDCASE"},
-            {rng.nextInt(90) + 10, "LOWER_EXTENDED"},
-            {rng.nextInt(90) + 10, "UPPER_EXTENDED"},
-            {rng.nextInt(90) + 10, "MIXED_EXTENDED"}
+            {rng.nextInt(90) + 10, TokenType.DIGIT},
+            {rng.nextInt(90) + 10, TokenType.LOWERCASE},
+            {rng.nextInt(90) + 10, TokenType.UPPERCASE},
+            {rng.nextInt(90) + 10, TokenType.MIXEDCASE},
+            {rng.nextInt(90) + 10, TokenType.LOWER_EXTENDED},
+            {rng.nextInt(90) + 10, TokenType.UPPER_EXTENDED},
+            {rng.nextInt(90) + 10, TokenType.MIXED_EXTENDED}
         };
     }
 
@@ -74,16 +75,16 @@ public class MinterTest implements Comparator<String> {
     public static Object[][] CustomMinterParameters() {
         Random rng = new Random();
         return new Object[][]{
-            {rng.nextInt(90) + 10, "ddddd", "DIGIT"},
-            {rng.nextInt(90) + 10, "lllll", "LOWERCASE"},
-            {rng.nextInt(90) + 10, "uuuuu", "UPPERCASE"},
-            {rng.nextInt(90) + 10, "lmmmu", "MIXEDCASE"},
-            {rng.nextInt(90) + 10, "lulul", "MIXEDCASE"},
-            {rng.nextInt(90) + 10, "ldldl", "LOWER_EXTENDED"},
-            {rng.nextInt(90) + 10, "ududu", "UPPER_EXTENDED"},
-            {rng.nextInt(90) + 10, "uedel", "MIXED_EXTENDED"},
-            {rng.nextInt(90) + 10, "ldmdu", "MIXED_EXTENDED"},
-            {rng.nextInt(90) + 10, "ldudl", "MIXED_EXTENDED"}
+            {rng.nextInt(90) + 10, "ddddd", TokenType.DIGIT},
+            {rng.nextInt(90) + 10, "lllll", TokenType.LOWERCASE},
+            {rng.nextInt(90) + 10, "uuuuu", TokenType.UPPERCASE},
+            {rng.nextInt(90) + 10, "lmmmu", TokenType.MIXEDCASE},
+            {rng.nextInt(90) + 10, "lulul", TokenType.MIXEDCASE},
+            {rng.nextInt(90) + 10, "ldldl", TokenType.LOWER_EXTENDED},
+            {rng.nextInt(90) + 10, "ududu", TokenType.UPPER_EXTENDED},
+            {rng.nextInt(90) + 10, "uedel", TokenType.MIXED_EXTENDED},
+            {rng.nextInt(90) + 10, "ldmdu", TokenType.MIXED_EXTENDED},
+            {rng.nextInt(90) + 10, "ldudl", TokenType.MIXED_EXTENDED}
         };
     }
 
@@ -96,10 +97,10 @@ public class MinterTest implements Comparator<String> {
     @DataProvider(name = "overlap parameters")
     public static Object[][] FormatOverlapParameters() {
         return new Object[][]{
-            {100, "DIGIT", true, 2},
-            {900, "LOWER_EXTENDED", true, 2},
-            {900, "UPPER_EXTENDED", true, 2},
-            {2500, "MIXED_EXTENDED", true, 2}
+            {100, TokenType.DIGIT, true, 2},
+            {900, TokenType.LOWER_EXTENDED, true, 2},
+            {900, TokenType.UPPER_EXTENDED, true, 2},
+            {2500, TokenType.MIXED_EXTENDED, true, 2}
         };
     }
 
@@ -113,20 +114,20 @@ public class MinterTest implements Comparator<String> {
     public static Object[][] FormatParameters() {
         Random rng = new Random();
         return new Object[][]{
-            {rng.nextInt(90) + 10, "1", "DIGIT", true, 5},
-            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", true, 5},
-            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", true, 5},
-            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", true, 5},
-            {rng.nextInt(90) + 10, "5", "LOWERCASE", true, 5},
-            {rng.nextInt(90) + 10, "6", "UPPERCASE", true, 5},
-            {rng.nextInt(90) + 10, "7", "MIXEDCASE", true, 5},
-            {rng.nextInt(90) + 10, "1", "DIGIT", false, 5},
-            {rng.nextInt(90) + 10, "2", "LOWER_EXTENDED", false, 5},
-            {rng.nextInt(90) + 10, "3", "UPPER_EXTENDED", false, 5},
-            {rng.nextInt(90) + 10, "4", "MIXED_EXTENDED", false, 5},
-            {rng.nextInt(90) + 10, "5", "LOWERCASE", false, 5},
-            {rng.nextInt(90) + 10, "6", "UPPERCASE", false, 5},
-            {rng.nextInt(90) + 10, "7", "MIXEDCASE", false, 5}
+            {rng.nextInt(90) + 10, "1", TokenType.DIGIT, true, 5},
+            {rng.nextInt(90) + 10, "2", TokenType.LOWER_EXTENDED, true, 5},
+            {rng.nextInt(90) + 10, "3", TokenType.UPPER_EXTENDED, true, 5},
+            {rng.nextInt(90) + 10, "4", TokenType.MIXED_EXTENDED, true, 5},
+            {rng.nextInt(90) + 10, "5", TokenType.LOWERCASE, true, 5},
+            {rng.nextInt(90) + 10, "6", TokenType.UPPERCASE, true, 5},
+            {rng.nextInt(90) + 10, "7", TokenType.MIXEDCASE, true, 5},
+            {rng.nextInt(90) + 10, "1", TokenType.DIGIT, false, 5},
+            {rng.nextInt(90) + 10, "2", TokenType.LOWER_EXTENDED, false, 5},
+            {rng.nextInt(90) + 10, "3", TokenType.UPPER_EXTENDED, false, 5},
+            {rng.nextInt(90) + 10, "4", TokenType.MIXED_EXTENDED, false, 5},
+            {rng.nextInt(90) + 10, "5", TokenType.LOWERCASE, false, 5},
+            {rng.nextInt(90) + 10, "6", TokenType.UPPERCASE, false, 5},
+            {rng.nextInt(90) + 10, "7", TokenType.MIXEDCASE, false, 5}
         };
     }
     
@@ -139,11 +140,11 @@ public class MinterTest implements Comparator<String> {
     @DataProvider(name = "bad parameter auto")
     public static Object[][] BadParametersAutoMinter() {
         return new Object[][]{
-            {-10, "prefix", "tokenType", 10, true},
-            {100, "!prefix", "tokenType", 10, true},
-            {100, String.format("%21s", ""), "tokenType", 10, true},
-            {100, "prefix", "tokenType", -10, true},
-            {100, "prefix", "tokenType", 11, true}
+            {-10, "prefix", TokenType.DIGIT, 10, true},
+            {100, "!prefix", TokenType.DIGIT, 10, true},
+            {100, String.format("%21s", ""), TokenType.DIGIT, 10, true},
+            {100, "prefix", TokenType.DIGIT, -10, true},
+            {100, "prefix", TokenType.DIGIT, 11, true}
         };
     }
 
@@ -170,23 +171,26 @@ public class MinterTest implements Comparator<String> {
      *
      *
      * @param expectedAmount The requested amount of ids
-     * @param token The token used to format the ids
+     * @param tokenType The tokenType used to format the ids
      */
     @Test(dataProvider = "autoMinter parameters")
-    public void testUniqueIdRandomAutoMinter(int expectedAmount, String token) {
+    public void testUniqueIdRandomAutoMinter(int expectedAmount, TokenType tokenType) {
         try {
             // produce the ids using the given format
             int rootLength = 5;
 
             String prefix = "";
-            Set<String> set = new HashSet<String>();
+            //Set<String> set = new HashSet<>();
+            Set<Id> set = new HashSet<>();
 
             Minter AutoMinter
-                    = new Minter(DatabaseManager, "/:ark/NAAN/", token, rootLength, prefix, false);
+                    = new Minter(DatabaseManager, "/:ark/NAAN/", tokenType, rootLength, prefix, false);
 
-            DatabaseManager.getPermutations(prefix, token, rootLength, false);
-            String JSONIds = AutoMinter.genIdAutoRandom(expectedAmount);
+            
+            DatabaseManager.getPermutations(prefix, tokenType, rootLength, false);
+            set = AutoMinter.genIdAutoRandom(expectedAmount);
 
+            /*
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.nextLine();
@@ -199,6 +203,8 @@ public class MinterTest implements Comparator<String> {
                     set.add(id);
                 }
             }
+            */
+            
             // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
 
@@ -217,21 +223,23 @@ public class MinterTest implements Comparator<String> {
      * root.
      */
     @Test(dataProvider = "autoMinter parameters")
-    public void testUniqueIdAutoSequentialMinter(int expectedAmount, String tokenType) {
+    public void testUniqueIdAutoSequentialMinter(int expectedAmount, TokenType tokenType) {
         try {
 
             // produce the ids using the given format
             int rootLength = 5;
 
             String prefix = "";
-            Set<String> set = new LinkedHashSet<String>();
+            //Set<String> set = new LinkedHashSet<>();
+            Set<Id> set = new LinkedHashSet<>();
 
             Minter AutoMinter
                     = new Minter(DatabaseManager, "/:ark/NAAN/", tokenType, rootLength, prefix, false);
 
             DatabaseManager.getPermutations(prefix, tokenType, rootLength, false);
-            String JSONIds = AutoMinter.genIdAutoSequential(expectedAmount);
+            set = AutoMinter.genIdAutoSequential(expectedAmount);
 
+            /*
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.nextLine();
@@ -242,11 +250,13 @@ public class MinterTest implements Comparator<String> {
                 }
             }
             // if the amount of ids produced is not the same as the number of ids in a set, fail
+            */
             Assert.assertEquals(set.size(), expectedAmount);
-            Iterator<String> iter = set.iterator();
-            String prev = iter.next();
+            Iterator<Id> iter = set.iterator();
+            //Iterator<String> iter = set.iterator();
+            String prev = iter.next().toString();
             while (iter.hasNext()) {
-                String current = iter.next();
+                String current = iter.next().toString();
                 // if the previous id has an equal or greater value than the current id, 
                 // fail the case
                 if (compare(prev, current) > -1) {
@@ -256,8 +266,10 @@ public class MinterTest implements Comparator<String> {
                 prev = current;
             }
             // if any exceptions are caught, fail
-        } catch (SQLException | IOException | BadParameterException exception) {
-            Assert.fail(exception.getMessage(), exception);
+        } catch (SQLException | IOException | BadParameterException | NotEnoughPermutationsException exception) {
+            System.out.println("");
+            Assert.fail(exception.getMessage() + "\nexpectedAmount = " + expectedAmount + "\ttokenType = " + tokenType, exception);
+            
         }
     }
 
@@ -272,16 +284,18 @@ public class MinterTest implements Comparator<String> {
      */
     @Test(dataProvider = "customMinter parameters")
     public void testUniqueIdRandomCustomMinter(int expectedAmount, String charMap,
-            String tokenType) {
+            TokenType tokenType) {
         try {
             // produce the ids using the given format
             String prefix = "";
-            Set<String> set = new HashSet<String>();
+            //Set<String> set = new HashSet<>();
+            Set<Id> set = new HashSet<>();
 
             Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
             DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
-            String JSONIds = CustomMinter.genIdCustomRandom(expectedAmount);
+            set = CustomMinter.genIdCustomRandom(expectedAmount);
 
+            /*
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.next().trim();
@@ -296,6 +310,7 @@ public class MinterTest implements Comparator<String> {
                     set.add(id);
                 }
             }
+            */
             // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
 
@@ -317,15 +332,18 @@ public class MinterTest implements Comparator<String> {
      */
     @Test(dataProvider = "customMinter parameters")
     public void testUniqueIdSequentialCustomMinter(int expectedAmount, String charMap,
-            String tokenType) {
+            TokenType tokenType) {
         try {
             // produce the ids using the given format
             String prefix = "";
-            Set<String> set = new LinkedHashSet<String>();
+            //Set<String> set = new LinkedHashSet<>();
+            Set<Id> set = new LinkedHashSet<>();
+            
             Minter CustomMinter = new Minter(DatabaseManager, "", charMap, prefix, false);
             DatabaseManager.getPermutations(prefix, false, charMap, CustomMinter.getTokenType());
-            String JSONIds = CustomMinter.genIdCustomSequential(expectedAmount);
+            set = CustomMinter.genIdCustomSequential(expectedAmount);
 
+            /*
             Scanner JSONParser = new Scanner(JSONIds);
             while (JSONParser.hasNext()) {
                 String id = JSONParser.next().trim();
@@ -337,20 +355,22 @@ public class MinterTest implements Comparator<String> {
                     System.out.println("getToken: " + CustomMinter.getTokenType());
                     Assert.assertEquals(CustomMinter.getTokenType(), tokenType);
 
-                    //System.out.println(id);
+
                     // add id to the set to prove uniqueness
                     set.add(id);
                 }
             }
+            */
             // if the amount of ids produced is not the same as the number of ids in a set, fail
             Assert.assertEquals(set.size(), expectedAmount);
-            Iterator<String> iter = set.iterator();
-            String prev = iter.next();
+            Iterator<Id> iter = set.iterator();
+            String prev = iter.next().toString();
             while (iter.hasNext()) {
-                String current = iter.next();
+                String current = iter.next().toString();
                 // if the previous id has a higher value than the current id, fail the case
                 if (compare(prev, current) > -1) {
-                    Assert.fail("The ids are not sequential: prev=" + prev + "\tcurrent=" + current);
+                    Assert.fail(
+                            "The ids are not sequential: prev=" + prev + "\tcurrent=" + current);
                 }
                 prev = current;
             }
@@ -371,9 +391,9 @@ public class MinterTest implements Comparator<String> {
             Minter AutoMinter;
             String prefix = "";
 
-            DatabaseManager.getPermutations(prefix, "DIGIT", 2, true);
+            DatabaseManager.getPermutations(prefix, TokenType.DIGIT, 2, true);
             AutoMinter
-                    = new Minter(DatabaseManager, prefix, "DIGIT", 2, prefix, true);
+                    = new Minter(DatabaseManager, prefix, TokenType.DIGIT, 2, prefix, true);
 
             AutoMinter.genIdAutoRandom(100);
         } catch (Exception exception) {
@@ -402,7 +422,7 @@ public class MinterTest implements Comparator<String> {
     @Test(dataProvider = "overlap parameters",
             expectedExceptions = NotEnoughPermutationsException.class,
             dependsOnMethods = "populateAutoDigitFormat")
-    public void formatOverlap(int expectedAmount, String tokenType, boolean sansVowel,
+    public void formatOverlap(int expectedAmount, TokenType tokenType, boolean sansVowel,
             int rootLength) {
         System.out.println("inside formatOverlap");
         try {
@@ -434,7 +454,7 @@ public class MinterTest implements Comparator<String> {
      * @param rootLength Designates the length of the id's root.
      */
     @Test(dataProvider = "format parameters")
-    public void testFormat(int expectedAmount, String prefix, String tokenType,
+    public void testFormat(int expectedAmount, String prefix, TokenType tokenType,
             boolean sansVowel, int rootLength) {
         try {
             DatabaseManager.getPermutations(prefix, tokenType, rootLength, sansVowel);
@@ -464,8 +484,8 @@ public class MinterTest implements Comparator<String> {
      * @throws Exception
      */
     @Test(dataProvider = "bad parameter auto", expectedExceptions = BadParameterException.class)
-    public void testBadParameterExceptionAutoMinter(long amount, String prefix, String tokenType,
-            int rootLength, boolean sansVowel) throws Exception {
+    public void testBadParameterExceptionAutoMinter(long amount, String prefix, 
+            TokenType tokenType, int rootLength, boolean sansVowel) throws Exception {
         Minter AutoMinter
                 = new Minter(DatabaseManager, "", tokenType, rootLength, prefix, sansVowel);
         if (!AutoMinter.isValidAmount(amount)) {
@@ -491,23 +511,23 @@ public class MinterTest implements Comparator<String> {
         }
     }
 
-    @BeforeTest
+    @BeforeClass
     public static void setUpClass() throws Exception {
         File db = new File(DbName);
         System.out.println(db.getAbsolutePath());
         if (db.exists()) {
-            System.out.print("found test database; deleting...");
-            db.delete();
+            System.out.print("set up classfound test database; deleting..."+db.delete());
+            //db.delete();
             System.out.print("done\n");
         }
     }
 
-    @AfterTest
+    @AfterClass
     public static void tearDownClass() throws Exception {
         File db = new File(DbName);
         if (db.exists()) {
-            System.out.print("deleting test database...");
-            db.delete();
+            System.out.print("tear down class found test database; deleting..."+db.delete());
+            //db.delete();
             System.out.print("done\n");
         }
     }
@@ -515,12 +535,28 @@ public class MinterTest implements Comparator<String> {
     @BeforeTest
     public void setUpTest() throws Exception {
         DatabaseManager.createConnection();
+        File db = new File(DbName);
+        System.out.println(db.getAbsolutePath());
+        if (db.exists()) {
+            System.out.print("set up testfound test database; deleting..."+db.delete());
+            //db.delete();
+            System.out.print("done\n");
+        }
 
     }
-
+    
+    
     @AfterTest
     public void tearDownTest() throws Exception {
         DatabaseManager.closeConnection();
+        File db = new File(DbName);
+        System.out.println(db.getAbsolutePath());
+        if (db.exists()) {
+            System.out.print("tear down test found test database; deleting..."+db.delete());
+            //db.delete();
+            
+            System.out.print("done\n");
+        }
     }
 
     /**
