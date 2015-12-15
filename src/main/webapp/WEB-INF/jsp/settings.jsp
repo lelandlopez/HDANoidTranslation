@@ -82,6 +82,9 @@
             if (confirm("Are you sure you want to submit? Submitting will restart the service and reject all queued requests.") == true) {
                 x = "Changes have been saved.";
             } else {
+                function submitForm() { 
+                    return false; 
+                }
                 x = "Canceled.";
             }
             document.getElementById("confirmed").innerHTML = x;
