@@ -16,12 +16,15 @@ import org.apache.log4j.Logger;
 public class PURLController {
 
 	private static final Logger logger = Logger.getLogger(PURLController.class);
-	/*
+	/**
 	 * matches url: /PURL/retrieve
 	 * retrieves corresponding purl row of provided purlid
-	 * @param required purlid - purlid of PURL to retrieve
-	 * @return: json string of purl_model
-	*/
+	 * returns model - purl and view : retrieve if successful
+	 * returns model - null if not 
+	 * @param purlid purlid of desired retrieved row
+	 * @return ModelAndView
+	 * @throws IOException throws if connection could not be made
+	 */
 	@RequestMapping("/retrieve")
     public ModelAndView retrieve(@RequestParam(value="purlid", required = true) String purlid) throws IOException {
 		if(logger.isInfoEnabled()){
@@ -42,13 +45,18 @@ public class PURLController {
 			return mv;
 		}
     }
-	/*
+
+	
+	/**
 	 * matches url: /PURL/edit
 	 * edit purlid row url, with provided url
-	 * @param required purlid - purlid of PURL to edit
-	 * @param required url - url to be changed to
-	 * @return: json string of purl_model if succeed, null string if it doesn't
-	*/
+	 * returns model : purl and view : edit if successful
+	 * returns model : null if not 
+	 * @param purlid purlid of desired edited row
+	 * @param url url that desired row url will be changed to
+	 * @return ModelAndView
+	 * @throws IOException throws if connection could not be made
+	 */
 	@RequestMapping("/edit")
 	public ModelAndView edit(@RequestParam(value="purlid", required = true) String purlid, 
 			@RequestParam(value="url", required = true) String url) throws IOException {
@@ -71,17 +79,21 @@ public class PURLController {
 		}
 	}
 	
-	/*
+
+	/**
 	 * matches url: /PURL/insert
 	 * inserts purlid, url, erc, who, what, when to new row of table
-	 * @param required purlid - purl id to add to row
-	 * @param required url - url to add to row
-	 * @param required erc - erc to add to row
-	 * @param required who - who to add to row
-	 * @param required what - what to add to row
-	 * @param required when - when to add to row
-	 * @return: json string of purl_model if succeed, null string if it doesn't
-	*/
+	 * returns model : purl and view : insert if successful
+	 * returns model : null if not 
+	 * @param purlid purlid to be inserted
+	 * @param url url to be inserted
+	 * @param erc erc to be inserted
+	 * @param who who to be inserted
+	 * @param what what to be inserted
+	 * @param when when to be insertd
+	 * @return ModelAndView
+	 * @throws IOException throws if db conn not successful
+	 */
 	@RequestMapping("/insert")
 	public ModelAndView insert(@RequestParam(value="purlid", required = true) String purlid, 
 			@RequestParam(value="url", required = true) String url,
@@ -97,7 +109,7 @@ public class PURLController {
 		dbConn.openConnection();	//connect to db
 		if(dbConn.insertPURL(purlid, url, erc, who, what, when)) {
 			model_Purl purl = dbConn.retrieveModel(purlid);	
-			ModelAndView mv = new ModelAndView("retrieve", "purl", purl);	//show edit view, attach purl object.  converted to json at view.
+			ModelAndView mv = new ModelAndView("insert", "purl", purl);	//show edit view, attach purl object.  converted to json at view.
 			dbConn.closeConnection();	//close connection
 			logger.info("insert returned: " + purl.toJSON());
 			return mv;
@@ -110,17 +122,16 @@ public class PURLController {
 		
 	}
 	
-	/*
-	 * matches url: /PURL/insert
-	 * inserts purlid, url, erc, who, what, when to new row of table
-	 * @param required purlid - purl id to add to row
-	 * @param required url - url to add to row
-	 * @param required erc - erc to add to row
-	 * @param required who - who to add to row
-	 * @param required what - what to add to row
-	 * @param required when - when to add to row
-	 * @return: json string of purl_model if succeed, null string if it doesn't
-	*/
+
+	/**
+	 * matches url: /PURL/delete
+	 * deletes row of table with corresponding purlid
+	 * returns view : deleted if successful
+	 * returns model : null if not 
+	 * @param purlid purlid of desired deleted row
+	 * @return ModelAndView
+	 * @throws IOException throws if dbConn is not successful
+	 */
 	@RequestMapping("/delete")
 	public ModelAndView delete(@RequestParam(value="purlid", required = true) String purlid
 			) throws IOException {
@@ -130,10 +141,9 @@ public class PURLController {
 		DBConn dbConn = new DBConn();  //connect to db
 		dbConn.openConnection();	//connect to db
 		if(dbConn.deletePURL(purlid)) {
-			model_Purl purl = dbConn.retrieveModel(purlid);	
 			ModelAndView mv = new ModelAndView("deleted");	//show edit view, attach purl object.  converted to json at view.
 			dbConn.closeConnection();	//close connection
-			logger.info("{\"result\":\"deleted\"}");
+			logger.info("{\"result\":\"success\"}");
 			return mv;
 		} else {
 		dbConn.closeConnection();	//close connection

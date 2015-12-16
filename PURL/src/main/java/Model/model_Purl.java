@@ -17,7 +17,10 @@ public class model_Purl {
 	 String When;
 	
 	
-	//setters and getters
+	/**
+	 * model_Purl Constructor
+	 * @param PURL purlid of model_purl
+	 */
 	public model_Purl(String PURL) {
 		this.PURL = PURL;
 	}
@@ -71,7 +74,10 @@ public class model_Purl {
 		When = when;
 	}
 	
-	//translates to json
+	/**
+	 * 
+	 * @return Json String
+	 */
 	public String toJSON() {
 		String json = "";
 		json += "{";

@@ -36,17 +36,19 @@ public class DBConn {
 	private String password;
 	private Connection conn = null;
 	
-	/*
-	 * @param string serverURL
-	 * @param string username
-	 * @param string password
+	/**
+	 * DBConn constructor.
+	 * Retrieves server credentials from serverCredential.properties in resources directory
+	 * @throws IOException throws if getServerCredentials() also throws an IOException
 	 */
 	public DBConn() throws IOException {
 		getServerCredentials();
 	}
 	
-	/*
-	 * tries to connect.  returns false if connect failed.
+	/**
+	 * opens db connection
+	 * returns true if successful, false if not
+	 * @return boolean
 	 */
 	public boolean openConnection() {
 		try {
@@ -62,8 +64,10 @@ public class DBConn {
 		}
 	}
 	
-	/*
-	 * tries to disconnect.  returns false if disconnect failed.
+	/**
+	 * closes db connection
+	 * true if successful, false if not
+	 * @return boolean
 	 */
 	public boolean closeConnection() {
 		try {
@@ -80,10 +84,11 @@ public class DBConn {
         }
 	}
 	
-	/*
-	 * @param string PURLID
-	 * @param string username
-	 * @param string password
+	/**
+	 * retrieves url of provided purlid
+	 * returns url string if successfull, null if not
+	 * @param PURLID purlid of desired row
+	 * @return String
 	 */
 	public String retrieveURL(String PURLID) {
 		
@@ -117,11 +122,16 @@ public class DBConn {
 		
 	}
 	
-	/*
-	 * insertPURL
-	 * Input: String PURLID, String URL, String ERC, String Who, String What, String When
-	 * executes query to edit URL of corresponding PURLID, replaces with provided URL
-	 * OUTPUT: true if query was executed.  if not return false;
+	/**
+	 * inserts PURL into database
+	 * returns true if successful, false if not
+	 * @param PURLID purlid to be inserted
+	 * @param URL url to be inserted
+	 * @param ERC erc to be inserted
+	 * @param Who who to be inserted
+	 * @param What what to be inserted
+	 * @param When when to be inserted
+	 * @return boolean
 	 */
 	public boolean insertPURL(String PURLID, String URL, String ERC, String Who, String What, String When) {
 		ResultSet rs = null;
@@ -163,11 +173,12 @@ public class DBConn {
         }
 	}
 	
-	/*
-	 * editURL
-	 * Input: String PURLID, String URL
-	 * executes query to edit URL of corresponding PURLID, replaces with provided URL
-	 * OUTPUT: true if query was executed.  if not return false;
+	/**
+	 * edits url of db row with corresponding purlid.
+	 * returns true if successful, false if not
+	 * @param PURLID purlid of desired edited row
+	 * @param URL url that desired row url will be changed to
+	 * @return boolean
 	 */
 	public boolean editURL(String PURLID, String URL) {
 	    
@@ -194,11 +205,11 @@ public class DBConn {
         }
 	}
 	
-	/*
-	 * deletePURL
-	 * Input: String PURLID, String URL, String ERC, String Who, String What, String When
-	 * executes query to edit URL of corresponding PURLID, replaces with provided URL
-	 * OUTPUT: true if query was executed.  if not return false;
+	/**
+	 * deletes db row with corresponding purlid
+	 * returns true if successful, false if not
+	 * @param PURLID purlid of desired delted row
+	 * @return boolean
 	 */
 	public boolean deletePURL(String PURLID) {
 	    
@@ -225,11 +236,11 @@ public class DBConn {
         }
 	}
 	
-	/*
-	 * retrieveModel
-	 * Input: String PURLID
-	 * executes query to return model of corresponding PURLID
-	 * OUTPUT: model_Purl, returns null if query was unnsuccessfull.
+	/**
+	 * retrieves model of purl_id object
+	 * returns the respective purl db row.
+	 * @param PURLID purlid of desired row that will become model_Purl
+	 * @return model_Purl
 	 */
 	public model_Purl retrieveModel(String PURLID) {
 		
@@ -267,9 +278,14 @@ public class DBConn {
 		return PURL;		//return the PURL model
 	}
 	
-	public String getServerCredentials() throws IOException {
+	/**
+	 * gets server credentials from serverCredential.properties in the resources directory
+	 * returns true if successful, false if not.
+	 * @return boolean
+	 * @throws IOException throws if input stream could not be closed
+	 */
+	public boolean getServerCredentials() throws IOException {
  
-		String result = "";
 		InputStream inputStream = null;
 		
 		try {
@@ -287,13 +303,14 @@ public class DBConn {
 			this.serverURL = prop.getProperty("server");
 			this.username = prop.getProperty("username");
 			this.password = prop.getProperty("password");
+			return true;
  
 		} catch (Exception e) {
 			System.out.println("Exception: " + e);
 		} finally {
 			inputStream.close();
 		}
-		return result;
+		return false;
 	}
 
 }
