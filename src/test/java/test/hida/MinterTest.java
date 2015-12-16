@@ -20,6 +20,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import java.util.Scanner;
 import java.util.Set;
+import org.slf4j.spi.LocationAwareLogger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
@@ -328,7 +329,8 @@ public class MinterTest implements Comparator<String> {
      * NotEnoughPermutationsException can be tested.
      */
     @Test
-    public void populateAutoDigitFormat() {
+    public void populateAutoDigitFormat() throws SQLException{
+        
         try {
             Minter AutoMinter;
             String prefix = "";
@@ -339,6 +341,7 @@ public class MinterTest implements Comparator<String> {
 
             AutoMinter.genIdAutoRandom(100);
         } catch (Exception exception) {
+            DatabaseManager.printFormat();
             Assert.fail(exception.getMessage(), exception);
         }
     }

@@ -96,7 +96,6 @@ public class MinterController {
         // retrieve the default settings from the database and store it in Settings
         Settings = new CachedSettings();
         Settings.retrieveSettings();
-
         DatabaseManager.closeConnection();
     }
 
@@ -142,6 +141,8 @@ public class MinterController {
             }
             if (sansVowels == null) {
                 sansVowels = null;
+            } if(rootLength == null || rootLength.isEmpty()){
+                rootLength = "1";
             }
             
             // gets the tokenmap value
@@ -188,9 +189,11 @@ public class MinterController {
             writer.println("sansVowels = " + vowels);
 
             if (auto) {
+                System.out.println("assiging auto minter settings");
                 DatabaseManager.assignSettings(
                         prepend, prefix, tokenType, length, auto, random, vowels);
             } else {
+                System.out.println("assiging custom minter settings");
                 DatabaseManager.assignSettings(prepend, prefix, charMap, auto, random, vowels);
             }
 
@@ -240,7 +243,7 @@ public class MinterController {
             // instantiate the correct minter and calculate remaining number of permutations
             long remainingPermutations;
             Minter minter;
-            if (Settings.isAuto()) {
+            if (tempSettings.isAuto()) {
                 minter = createAutoMinter(requestedAmount, tempSettings);
                 remainingPermutations
                         = DatabaseManager.getPermutations(tempSettings.getPrefix(),
@@ -253,7 +256,7 @@ public class MinterController {
                         = DatabaseManager.getPermutations(tempSettings.getPrefix(),
                                 tempSettings.isSansVowels(),
                                 tempSettings.getCharMap(),
-                                tempSettings.getTokenType());
+                                minter.getTokenType());
             }
 
             // throw an exception if the requested amount of ids can't be generated
@@ -264,9 +267,11 @@ public class MinterController {
                 throw new NotEnoughPermutationsException(remainingPermutations, requestedAmount);
             }
             Set<Id> idList;
-            // have the minter create the ids and assign it to message
+            System.out.println("tempSettings = " + tempSettings);
+            // have the minter create the ids and assign it to message            
             if (tempSettings.isAuto()) {
-                if (Settings.isRandom()) {
+                if (tempSettings.isRandom()) {
+                    
                     System.out.println("making autoRandom");
                     idList = minter.genIdAutoRandom(requestedAmount);
                     Logger.info("Generated IDs will use the Format: " + Settings);
@@ -407,6 +412,7 @@ public class MinterController {
      */
     private Minter createCustomMinter(long requestedAmount, CachedSettings tempSettings)
             throws BadParameterException {
+        System.out.println("in createCustomMinter");
         Minter minter = new Minter(DatabaseManager,
                 tempSettings.getPrepend(),
                 tempSettings.getCharMap(),
@@ -633,7 +639,7 @@ public class MinterController {
         @Override
         public String toString() {
             return String.format("prepend=%s\tprefix=%s\ttokenType=%s\tlength=%d\tcharMap=%s"
-                    + "\tauto=%b\trandom=%b\tsans%b",
+                    + "\tauto=%b\trandom=%b\tsansVowel=%b",
                     Prepend, Prefix, TokenType, RootLength, CharMap, Auto, Random, SansVowels);
         }
 

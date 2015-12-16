@@ -78,16 +78,17 @@
     
         //Check data when submitting form.
         function check() {
-            var x;
+            var x, flag;
             if (confirm("Are you sure you want to submit? Submitting will restart the service and reject all queued requests.") == true) {
                 x = "Changes have been saved.";
-            } else {
-                function submitForm() { 
-                    return false; 
-                }
+                flag = true;                 
+            } else {                
                 x = "Canceled.";
+                flag = false;                
             }
+            
             document.getElementById("confirmed").innerHTML = x;
+            return flag;
         }
        
         function prefixIDCHECK() {
@@ -134,7 +135,7 @@
 
 <body>
     <!--HDA MINTER FORM: User form to select and customize Persistent ID Minter options.-->
-    <form id="form1" runat="server" onsubmit="submitForm()" method="post" action="confirmation" novalidate>
+    <form id="form1" runat="server" onsubmit="return check()" method="post" action="confirmation" novalidate>
         
         
         <!--FORM HEADER: A simple header for the form.-->
@@ -272,11 +273,11 @@
             <!--SUBMIT: Submit Button. End of form.-->
             <tr id="trsubmit">
                 <td>
-                    <td><br><input type="submit" name="submit" value="Submit" onclick="check()"/></td>
+                    <td><br><input type="submit" name="submit" value="Submit" onsubmit="submitForm()"/></td>
                 </td>
             </tr>
             
-            
+            `
             
             <!--CONFIRMED: Confirmation message if changes are saved or canceled.-->
             <tr id="trconfirmed">
