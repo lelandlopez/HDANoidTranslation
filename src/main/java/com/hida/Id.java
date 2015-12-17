@@ -128,7 +128,7 @@ public abstract class Id implements Comparable<Id> {
 
     /**
      * Method to retrieve the prefix of the id
-     * @return 
+     * @return gets the prefix associated with this id
      */
     public String getPrefix() {
         return Prefix;
