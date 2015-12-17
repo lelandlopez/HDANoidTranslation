@@ -1,7 +1,8 @@
 package com.hida;
 
 /**
- *
+ * An exception that was created to display what parameter was incorrect and the value
+ * that caused an error.
  * @author lruffin
  */
 public class BadParameterException extends Exception {

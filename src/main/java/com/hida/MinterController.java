@@ -96,107 +96,100 @@ public class MinterController {
         // retrieve the default settings from the database and store it in Settings
         Settings = new CachedSettings();
         Settings.retrieveSettings();
+
         DatabaseManager.closeConnection();
     }
 
     /**
+     * Redirects to the index after retrieving updated settings from the
+     * administration panel.
      *
-     * @param request
-     * @param response
-     * @throws IOException
-     * @throws ServletException
-     * @throws URISyntaxException
+     * @param request HTTP request from the administration panel
+     * @param response HTTP response that redirects to the administration panel
+     * after updating the new settings.
+     * @return The name of the page to redirect.
+     * @throws SQLException
+     * @throws BadParameterException Thrown whenever a bad parameter is
+     * detected.
+     * @throws ClassNotFoundException Thrown whenever a class does not exist.
      */
     @RequestMapping(value = {"/confirmation"},
             method = {org.springframework.web.bind.annotation.RequestMethod.POST})
-    public void handleForm(HttpServletRequest request, HttpServletResponse response)
-            throws IOException, ServletException, BadParameterException, SQLException,
-            ClassNotFoundException {
+    public String handleForm(HttpServletRequest request, HttpServletResponse response)
+            throws ClassNotFoundException, SQLException, BadParameterException {
         try {
             // prevents other clients from accessing the database whenever the form is submitted
             RequestLock.lock();
 
             DatabaseManager.createConnection();
-            
+
             Logger.info("in handleForm");
             String prepend = request.getParameter("prepend");
             String prefix = request.getParameter("idprefix");
             String isAuto = request.getParameter("mintType");
             String isRandom = request.getParameter("mintOrder");
             String sansVowels = request.getParameter("vowels");
-            String digitToken = request.getParameter("digits");
-            String lowerToken = request.getParameter("lowercase");
-            String upperToken = request.getParameter("uppercase");
-
-            TokenType tokenType;
-
-            String charMap = request.getParameter("charmapping");
+            String digitToken;
+            String lowerToken;
+            String upperToken;
+            String charMap;
             String rootLength = request.getParameter("idlength");
 
+            boolean auto = isAuto.equals("auto");
+            boolean random = isRandom.equals("random");
+            boolean vowels = sansVowels == null;
+
+            // assign a non-null value to prepend, prefix, and rootLength
             if (prepend == null) {
                 prepend = "";
             }
             if (prefix == null) {
                 prefix = "";
             }
-            if (sansVowels == null) {
-                sansVowels = null;
-            } if(rootLength == null || rootLength.isEmpty()){
+            if ((rootLength == null || rootLength.isEmpty()) && !auto) {
                 rootLength = "1";
             }
-            
-            // gets the tokenmap value
-            if (digitToken != null && lowerToken == null && upperToken == null) {
-                tokenType = TokenType.DIGIT;
-            } else if (digitToken == null && lowerToken != null && upperToken == null) {
-                tokenType = TokenType.LOWERCASE;
-            } else if (digitToken == null && lowerToken == null && upperToken != null) {
-                tokenType = TokenType.UPPERCASE;
-            } else if (digitToken == null && lowerToken != null && upperToken != null) {
-                tokenType = TokenType.MIXEDCASE;
-            } else if (digitToken != null && lowerToken != null && upperToken == null) {
-                tokenType = TokenType.LOWER_EXTENDED;
-            } else if (digitToken == null && lowerToken == null && upperToken != null) {
-                tokenType = TokenType.UPPER_EXTENDED;
-            } else if (digitToken != null && lowerToken != null && upperToken != null) {
-                tokenType = TokenType.MIXED_EXTENDED;
-            } else {
-                throw new BadParameterException();
-            }
 
-            // get response writer and prints value to screen
-            PrintWriter writer = response.getWriter();
-            writer.println("prepend = " + prepend);
-            writer.println("prefix = " + prefix);
-            writer.println("charmap = is null?" + charMap.isEmpty() + charMap);
-            writer.println("rootlegnth = " + rootLength);
-            writer.println("auto = " + isAuto);
-            writer.println("isRandom = " + isRandom);
-            writer.println("sansVowels = is null?" + " i" + sansVowels);
-            writer.println("digitToken = " + digitToken);
-            writer.println("lowerToken = " + lowerToken);
-            writer.println("upperToken = " + upperToken);
-            writer.println("tokenType = " + tokenType);
-
-            
-            boolean auto = isAuto.equals("auto");
-            boolean random = isRandom.equals("random");
-            boolean vowels = sansVowels != null;
             int length = Integer.parseInt(rootLength);
 
-            writer.println("auto = " + auto);
-            writer.println("isRandom = " + random);
-            writer.println("sansVowels = " + vowels);
-
+            // assign values based on which minter type was selected
             if (auto) {
-                System.out.println("assiging auto minter settings");
+                digitToken = request.getParameter("digits");
+                lowerToken = request.getParameter("lowercase");
+                upperToken = request.getParameter("uppercase");
+
+                TokenType tokenType;
+
+                // gets the tokenmap value
+                if (digitToken != null && lowerToken == null && upperToken == null) {
+                    tokenType = TokenType.DIGIT;
+                } else if (digitToken == null && lowerToken != null && upperToken == null) {
+                    tokenType = TokenType.LOWERCASE;
+                } else if (digitToken == null && lowerToken == null && upperToken != null) {
+                    tokenType = TokenType.UPPERCASE;
+                } else if (digitToken == null && lowerToken != null && upperToken != null) {
+                    tokenType = TokenType.MIXEDCASE;
+                } else if (digitToken != null && lowerToken != null && upperToken == null) {
+                    tokenType = TokenType.LOWER_EXTENDED;
+                } else if (digitToken == null && lowerToken == null && upperToken != null) {
+                    tokenType = TokenType.UPPER_EXTENDED;
+                } else if (digitToken != null && lowerToken != null && upperToken != null) {
+                    tokenType = TokenType.MIXED_EXTENDED;
+                } else {
+                    throw new BadParameterException();
+                }
+
                 DatabaseManager.assignSettings(
                         prepend, prefix, tokenType, length, auto, random, vowels);
             } else {
-                System.out.println("assiging custom minter settings");
+
+                charMap = request.getParameter("charmapping");
+                if (charMap == null || charMap.isEmpty()) {
+                    throw new BadParameterException();
+                }
+
                 DatabaseManager.assignSettings(prepend, prefix, charMap, auto, random, vowels);
             }
-
             // close the connection and update the cache
             Settings.retrieveSettings();
             DatabaseManager.closeConnection();
@@ -205,6 +198,8 @@ public class MinterController {
             RequestLock.unlock();
             Logger.warn("Request to update default settings finished, UNLOCKING MINTER");
         }
+        // redirect to the administration panel
+        return "redirect:";
 
     }
 
@@ -243,7 +238,7 @@ public class MinterController {
             // instantiate the correct minter and calculate remaining number of permutations
             long remainingPermutations;
             Minter minter;
-            if (tempSettings.isAuto()) {
+            if (Settings.isAuto()) {
                 minter = createAutoMinter(requestedAmount, tempSettings);
                 remainingPermutations
                         = DatabaseManager.getPermutations(tempSettings.getPrefix(),
@@ -267,18 +262,16 @@ public class MinterController {
                 throw new NotEnoughPermutationsException(remainingPermutations, requestedAmount);
             }
             Set<Id> idList;
-            System.out.println("tempSettings = " + tempSettings);
-            // have the minter create the ids and assign it to message            
+            // have the minter create the ids and assign it to message
             if (tempSettings.isAuto()) {
-                if (tempSettings.isRandom()) {
-                    
-                    System.out.println("making autoRandom");
+                if (Settings.isRandom()) {
+
                     idList = minter.genIdAutoRandom(requestedAmount);
                     Logger.info("Generated IDs will use the Format: " + Settings);
                     Logger.info("Making autoRandom Generated IDs, Amount Requested="
                             + requestedAmount);
                 } else {
-                    System.out.println("making autoSequential");
+
                     idList = minter.genIdAutoSequential(requestedAmount);
                     Logger.info("Generated IDs will use the Format: " + Settings);
                     Logger.info("Making autoSequential Generated IDs, Amount Requested="
@@ -286,14 +279,14 @@ public class MinterController {
                 }
             } else {
                 if (tempSettings.isRandom()) {
-                    System.out.println("making customRandom");
+
                     idList = minter.genIdCustomRandom(requestedAmount);
                     Logger.info("Generated IDs will use the Format: " + Settings);
                     Logger.info("Making customRandom Generated IDs, Amount Requested="
                             + requestedAmount);
 
                 } else {
-                    System.out.println("making customSequential");
+
                     idList = minter.genIdCustomSequential(requestedAmount);
                     Logger.info("Generated IDs will use the Format: " + Settings);
                     Logger.info("Making customSequential Generated IDs, Amount Requested="
@@ -303,7 +296,6 @@ public class MinterController {
 
             message = convertListToJson(idList, tempSettings.getPrepend());
             //Logger.info("Message from Minter: "+message);
-            
 
             // print list of ids to screen
             model.addAttribute("message", message);
@@ -326,9 +318,21 @@ public class MinterController {
      */
     @RequestMapping(value = {""},
             method = {org.springframework.web.bind.annotation.RequestMethod.GET})
-    public String displayIndex() {
+    public ModelAndView displayIndex() {
+        ModelAndView model = new ModelAndView();
+
         Logger.info("index page called");
-        return "settings";
+        model.addObject("prepend", Settings.getPrepend());
+        model.addObject("prefix", Settings.getPrefix());
+        model.addObject("charMap", Settings.getCharMap());
+        model.addObject("tokenType", Settings.getTokenType());
+        model.addObject("rootLength", Settings.getRootLength());
+        model.addObject("isAuto", Settings.isAuto());
+        model.addObject("isRandom", Settings.isRandom());
+        model.addObject("sansVowel", Settings.isSansVowels());
+        model.setViewName("settings");
+
+        return model;
     }
 
     /**
@@ -386,13 +390,13 @@ public class MinterController {
             tempSetting.TokenType = getValidTokenType(parameters.get("tokenType"));
         }
         if (parameters.containsKey("auto")) {
-            tempSetting.Auto = (Boolean.parseBoolean(parameters.get("auto")));
+            tempSetting.Auto = convertBoolean(parameters.get("auto"), "auto");
         }
         if (parameters.containsKey("random")) {
-            tempSetting.Random = (Boolean.parseBoolean(parameters.get("random")));
+            tempSetting.Random = convertBoolean(parameters.get("random"),"random");
         }
         if (parameters.containsKey("sansVowels")) {
-            tempSetting.SansVowels = (Boolean.parseBoolean(parameters.get("sansVowels")));
+            tempSetting.SansVowels = convertBoolean(parameters.get("sansVowels"), "sansVowels");
         }
 
         return tempSetting;
@@ -412,7 +416,6 @@ public class MinterController {
      */
     private Minter createCustomMinter(long requestedAmount, CachedSettings tempSettings)
             throws BadParameterException {
-        System.out.println("in createCustomMinter");
         Minter minter = new Minter(DatabaseManager,
                 tempSettings.getPrepend(),
                 tempSettings.getCharMap(),
@@ -424,6 +427,27 @@ public class MinterController {
         } else {
             Logger.error("Request amount of " + requestedAmount + " IDs is unavailable");
             throw new BadParameterException(requestedAmount, "Requested Amount");
+        }
+    }
+    
+    /**
+     * This method is used to check to see whether or not the given parameter is explicitly
+     * equivalent to "true" or "false" and returns them respectively. The method
+     * provided by the Boolean wrapper class converts all Strings that do no explictly
+     * contain true to false. 
+     * @param parameter the given string to convert.
+     * @param parameterType the type of the parameter.
+     * @throws BadParameterException Thrown whenever a malformed parameter is formed or passed
+     * @return the equivalent version of true or false. 
+     */
+    private boolean convertBoolean(String parameter, String parameterType) 
+            throws BadParameterException{
+        if(parameter.equals("true")){
+            return true;
+        }else if(parameter.equals("false")){
+            return false;
+        }else{
+            throw new BadParameterException(parameter, parameterType);
         }
     }
 
@@ -471,14 +495,13 @@ public class MinterController {
 
     /**
      * Throws any exception that may be caught within the program
+     *
      * @param req the HTTP request
      * @param exception the caught exception
      * @return The view of the error message
      */
     @ExceptionHandler(Exception.class)
-    public ModelAndView
-            handleGeneralError(HttpServletRequest req, Exception exception) {
-
+    public ModelAndView handleGeneralError(HttpServletRequest req, Exception exception) {
         ModelAndView mav = new ModelAndView();
         mav.addObject("status", 500);
         mav.addObject("exception", exception.getClass().getSimpleName());
@@ -506,7 +529,7 @@ public class MinterController {
      * @param prepend A value to attach to the beginning of every id. Typically
      * used to determine the format of the id. For example, ARK or DOI.
      * @return A reference to a String that contains Json list of ids
-     * @throws IOException
+     * @throws IOException thrown whenever a file could not be found
      */
     public String convertListToJson(Set<Id> list, String prepend) throws IOException {
         // Jackson objects to create formatted Json string
@@ -533,7 +556,7 @@ public class MinterController {
     }
 
     /**
-     * Attempts to convert a string into an enum TokenType.
+     * Attempts to convert a string into an equivalent enum TokenType.
      *
      * @param tokenType Designates what characters are contained in the id's
      * root.
@@ -582,7 +605,7 @@ public class MinterController {
         /**
          * Copy constructor
          *
-         * @param s
+         * @param s the CachedSetting to copy
          */
         public CachedSettings(CachedSettings s) {
             Prepend = s.getPrepend();
@@ -610,7 +633,7 @@ public class MinterController {
          * parameter is passed
          */
         public void retrieveSettings() throws SQLException, BadParameterException {
-            System.out.println("in cached settings retrieve settings");
+
             Prepend = (String) DatabaseManager.retrieveSetting(DatabaseManager.getPREPEND_COLUMN());
             Prefix = (String) DatabaseManager.retrieveSetting(DatabaseManager.getPREFIX_COLUMN());
 
@@ -639,7 +662,7 @@ public class MinterController {
         @Override
         public String toString() {
             return String.format("prepend=%s\tprefix=%s\ttokenType=%s\tlength=%d\tcharMap=%s"
-                    + "\tauto=%b\trandom=%b\tsansVowel=%b",
+                    + "\tauto=%b\trandom=%b\tsans%b",
                     Prepend, Prefix, TokenType, RootLength, CharMap, Auto, Random, SansVowels);
         }
 

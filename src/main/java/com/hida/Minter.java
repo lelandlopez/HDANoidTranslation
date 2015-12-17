@@ -253,7 +253,7 @@ public class Minter {
      */
     private Set<Id> rollIds(Set<Id> original, boolean order, long totalPermutations, long amount)
             throws SQLException, NotEnoughPermutationsException {
-        System.out.println("inside roll ids");
+        
 
         // Used to count the number of unique ids. Size methods aren't used because int is returned
         long uniqueIdCounter = 0;
@@ -285,7 +285,7 @@ public class Minter {
                 if (counter > totalPermutations) {
                     long amountTaken = totalPermutations - uniqueIdCounter;
 
-                    System.out.println("throwing exception");
+                    
                     Logger.error("Total number of Permutations Exceeded: Total Permutation COunt="+totalPermutations);
                     DatabaseManager.setAmountCreated(
                             Prefix, TokenType, SansVowel, RootLength, amountTaken);
@@ -299,8 +299,7 @@ public class Minter {
             uniqueIdCounter++;
             uniqueList.add(currentId);
         }
-        System.out.println("\tuniqueCounter = " + uniqueIdCounter);
-        System.out.println("uniqueList size = " + uniqueList.size());
+        
 
         return uniqueList;
 
@@ -320,7 +319,7 @@ public class Minter {
      */
     public Set<Id> genIdAutoRandom(long amount) throws SQLException, IOException,
             NotEnoughPermutationsException, BadParameterException {
-        System.out.println("in genIdAutoRandom: " + amount);
+        
         String tokenMap = BaseMap.get(TokenType);
 
         Set<Id> tempIdList = new LinkedHashSet((int) amount);
@@ -332,7 +331,7 @@ public class Minter {
             }
             Id currentId = new AutoId(Prefix, tempIdBaseMap, tokenMap);
             Logger.info("Generated Auto Random ID: "+currentId);
-            System.out.println("id created: " + currentId);
+            
             while (tempIdList.contains(currentId)) {
                 currentId.incrementId();
             }
@@ -346,10 +345,7 @@ public class Minter {
         DatabaseManager.addIdList(tempIdList, amount, Prefix, TokenType, SansVowel, RootLength);
 
         
-        return tempIdList;
-        //System.out.println("returning json list");
-//        return convertListToJson(tempIdList);
-
+        return tempIdList;        
     }
 
     /**
@@ -366,7 +362,7 @@ public class Minter {
     public Set<Id> genIdAutoSequential(long amount)
             throws SQLException, IOException, BadParameterException,
             NotEnoughPermutationsException {
-        System.out.println("in genIdAutoSequential: " + amount);
+        
         //Logger.info("in genIdAutoSequential: " + amount);
         
 
@@ -412,7 +408,7 @@ public class Minter {
     public Set<Id> genIdCustomRandom(long amount)
             throws SQLException, IOException, BadParameterException,
             NotEnoughPermutationsException {
-        System.out.println("in genIdCustomRandom: " + amount);
+        
         String[] tokenMapArray = getBaseCharMapping();
               
         Set<Id> tempIdList = new LinkedHashSet((int) amount);
@@ -450,7 +446,7 @@ public class Minter {
      */
     public Set<Id> genIdCustomSequential(long amount)
             throws SQLException, IOException, BadParameterException, NotEnoughPermutationsException {
-        System.out.println("in genIdCustomSequential: " + amount);
+        
         //Logger.info("in genIdCustomSequential: " + amount);
         if (!isValidAmount(amount)) {
             //Logger.error("Amount Requested"+amount);

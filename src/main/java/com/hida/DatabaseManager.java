@@ -65,10 +65,9 @@ public class DatabaseManager extends Function {
     private final String DatabaseName;
 
     /**
-     * A constructor used to create a database at a given location and name.
      *
-     * @param DatabasePath path the database will be built.
-     * @param DatabaseName name of the database.
+     * @param DatabasePath
+     * @param DatabaseName
      */
     public DatabaseManager(String DatabasePath, String DatabaseName) {
         this.DatabasePath = DatabasePath;
@@ -108,14 +107,16 @@ public class DatabaseManager extends Function {
         //Logger.info("Database Connection Created Using: org.sqlite.JDBC");
         // allow the database connection to use regular expressions
         Function.create(DatabaseConnection, "REGEXP", new DatabaseManager());
+        
         if (this.isTableCreatedFlag) {
             return true;
         } else {
+
             System.out.println("creating table");
             //Logger.info("Database Created created using Regular Expressions from \"REGEX\"");
             if (!tableExists(ID_TABLE)) {
                 Logger.warn("Database Not Setup, Creating Tables");
-                System.out.println("creating table");
+                
 
                 // string to hold a query that sets up table in SQLite3 syntax
                 String createIdTable = String.format("CREATE TABLE %s "
@@ -123,7 +124,7 @@ public class DatabaseManager extends Function {
 
                 Logger.info("Table Created with Query: " + createIdTable);
 
-                // a database statement that allows database/webservice communication 
+                    // a database statement that allows database/webservice communication 
                 //Logger.info("Created BUS from Database to WebService");
                 Statement databaseStatement = DatabaseConnection.createStatement();
                 databaseStatement.executeUpdate(createIdTable);
@@ -150,6 +151,7 @@ public class DatabaseManager extends Function {
                 databaseStatement.executeUpdate(createFormatTable);
                 databaseStatement.close();
             }
+            
             if (!tableExists(SETTINGS_TABLE)) {
                 Logger.info("Creating Table: " + SETTINGS_TABLE + " with Column Name: " + ID_COLUMN);
                 String createSettingsTable = String.format("CREATE TABLE %s "
@@ -166,15 +168,18 @@ public class DatabaseManager extends Function {
                         SANS_VOWEL_COLUMN);
                 Logger.info("Format Table created with: " + createSettingsTable);
 
+                
                 //Logger.info("Cleaning up Connection and Table");
                 Statement databaseStatement = DatabaseConnection.createStatement();
                 databaseStatement.executeUpdate(createSettingsTable);
                 databaseStatement.close();
-
+                
                 // populate the settings table with default settings
                 assignDefaultSettings();
             }
+      
             this.isTableCreatedFlag = true;
+
             return true;
         }
     }
@@ -196,7 +201,7 @@ public class DatabaseManager extends Function {
      * @throws SQLException thrown whenever there is an error with the database
      */
     private void assignDefaultSettings() throws SQLException {
-        System.out.println("in assignDefaultSettings");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         String sqlQuery = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) "
@@ -209,7 +214,7 @@ public class DatabaseManager extends Function {
 
         databaseStatement.close();
 
-        printCache();
+        
 
     }
 
@@ -228,7 +233,7 @@ public class DatabaseManager extends Function {
      */
     public void assignSettings(String prepend, String prefix, TokenType tokenType, int rootLength,
             boolean isAuto, boolean isRandom, boolean sansVowel) throws SQLException {
-        System.out.println("in assignSettings 1");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         int autoFlag = (isAuto) ? 1 : 0;
@@ -245,7 +250,7 @@ public class DatabaseManager extends Function {
 
         databaseStatement.close();
 
-        printCache();
+
     }
 
     /**
@@ -262,8 +267,7 @@ public class DatabaseManager extends Function {
      * @throws SQLException thrown whenever there is an error with the database.
      */
     public void assignSettings(String prepend, String prefix, String charMap, boolean isAuto,
-            boolean isRandom, boolean sansVowel) throws SQLException {
-        System.out.println("in assignSettings 2");
+            boolean isRandom, boolean sansVowel) throws SQLException {        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         int autoFlag = (isAuto) ? 1 : 0;
@@ -289,8 +293,9 @@ public class DatabaseManager extends Function {
      * @throws SQLException thrown whenever there is an error with the database.
      */
     public Object retrieveSetting(String column) throws SQLException {
-        System.out.println("in retrieve settings");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
+       
 
         String sqlQuery = String.format("SELECT %s FROM %s;",
                 column, SETTINGS_TABLE);
@@ -322,8 +327,7 @@ public class DatabaseManager extends Function {
      * parameter is passed
      */
     public void addIdList(Set<Id> list, long amountCreated, String prefix, TokenType tokenType,
-            boolean sansVowel, int rootLength) throws SQLException, BadParameterException {
-        System.out.println("adding ids...");
+            boolean sansVowel, int rootLength) throws SQLException, BadParameterException {        
         Logger.info("Database being updated");
         String valueQuery = "";
         String insertQuery = "INSERT INTO " + ID_TABLE + "('" + ID_COLUMN + "') VALUES ";
@@ -362,11 +366,11 @@ public class DatabaseManager extends Function {
         }
 
         // update table format
-        System.out.println("updating table format...");
+        
         this.addAmountCreated(prefix, tokenType, sansVowel, rootLength, amountCreated);
-        System.out.print("done; printed ids to database\n");
+        
         //Logger.info("Finished; IDs printed to Database");
-        this.printFormat();
+        
     }
 
     /**
@@ -455,7 +459,7 @@ public class DatabaseManager extends Function {
      */
     public long getTotalPermutations(TokenType tokenType, int rootLength, boolean sansVowel)
             throws BadParameterException {
-        System.out.println("in getTotalPermutations 1");
+        
 
         // get the base of each character
         int base;
@@ -482,7 +486,7 @@ public class DatabaseManager extends Function {
         }
 
         // raise it to the power of how ever long the rootLength is
-        System.out.println("total permutations = " + ((long) Math.pow(base, rootLength)));
+        
         return ((long) Math.pow(base, rootLength));
     }
 
@@ -499,7 +503,7 @@ public class DatabaseManager extends Function {
      */
     public long getTotalPermutations(String charMap, boolean sansVowel)
             throws BadParameterException {
-        System.out.println("in getTotalPermutations 2");
+        
         long totalPermutations = 1;
         for (int i = 0; i < charMap.length(); i++) {
             if (charMap.charAt(i) == 'd') {
@@ -533,7 +537,7 @@ public class DatabaseManager extends Function {
      */
     protected void createFormat(String prefix, TokenType tokenType, boolean sansVowel,
             int rootLength) throws SQLException {
-        System.out.println("in createFormat");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         int vowelFlag = (sansVowel) ? 1 : 0;
@@ -562,7 +566,7 @@ public class DatabaseManager extends Function {
      */
     public void addAmountCreated(String prefix, TokenType tokenType, boolean sansVowel,
             int rootLength, long amountCreated) throws SQLException {
-        System.out.println("in addAmountCreated");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         long currentAmount = getAmountCreated(prefix, tokenType, sansVowel, rootLength);
@@ -596,7 +600,7 @@ public class DatabaseManager extends Function {
      */
     protected void setAmountCreated(String prefix, TokenType tokenType, boolean sansVowel,
             int rootLength, long amountCreated) throws SQLException {
-        System.out.println("in setAmountCreated");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         int vowelFlag = (sansVowel) ? 1 : 0;
@@ -627,7 +631,7 @@ public class DatabaseManager extends Function {
     public long getAmountCreated(String prefix, TokenType tokenType, boolean sansVowel,
             int rootLength) throws SQLException {
 
-        System.out.println("in getAmountCreated");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         int vowelFlag = (sansVowel) ? 1 : 0;
@@ -636,7 +640,7 @@ public class DatabaseManager extends Function {
                 AMOUNT_CREATED_COLUMN, FORMAT_TABLE, PREFIX_COLUMN, prefix,
                 TOKEN_TYPE_COLUMN, tokenType, SANS_VOWEL_COLUMN, vowelFlag,
                 ROOT_LENGTH_COLUMN, rootLength);
-        System.out.println(sqlQuery);
+        
         ResultSet result = databaseStatement.executeQuery(sqlQuery);
         long value;
         if (result.next()) {
@@ -666,7 +670,7 @@ public class DatabaseManager extends Function {
      */
     public boolean formatExists(String prefix, TokenType tokenType, boolean sansVowel,
             int rootLength) throws SQLException {
-        System.out.println("in formatExists");
+        
         Statement databaseStatement = DatabaseConnection.createStatement();
 
         int vowelFlag = (sansVowel) ? 1 : 0;
@@ -676,7 +680,7 @@ public class DatabaseManager extends Function {
                 TOKEN_TYPE_COLUMN, tokenType, SANS_VOWEL_COLUMN, vowelFlag,
                 ROOT_LENGTH_COLUMN, rootLength);
         Logger.info("Format Created: " + sqlQuery);
-        System.out.println(sqlQuery);
+        
         ResultSet result = databaseStatement.executeQuery(sqlQuery);
         boolean value;
         if (result.next()) {
@@ -717,7 +721,7 @@ public class DatabaseManager extends Function {
     public long getPermutations(String prefix, TokenType tokenType, int rootLength,
             boolean sansVowel)
             throws SQLException, BadParameterException {
-        System.out.println("in getPermutations 1");
+        
         //Logger.info("in Permutations 1");
 
         // calculate the total number of possible permuations        
@@ -726,13 +730,13 @@ public class DatabaseManager extends Function {
 
         // format wasn't found
         if (amountCreated == -1) {
-            System.out.println("\tformat doesnt exist");
+            
             Logger.warn("Format Doesn't Exist");
             this.createFormat(prefix, tokenType, sansVowel, rootLength);
             return totalPermutations;
         } else {
             // format was found
-            System.out.println("\tformat exists");
+            
             Logger.info("format Exists");
             return totalPermutations - amountCreated;
         }
@@ -767,20 +771,20 @@ public class DatabaseManager extends Function {
      */
     public long getPermutations(String prefix, boolean sansVowel, String charMap,
             TokenType tokenType) throws SQLException, BadParameterException {
-        System.out.println("in getPermutations 2");
+        
         // calculate the total number of possible permuations        
         long totalPermutations = this.getTotalPermutations(charMap, sansVowel);
         long amountCreated = getAmountCreated(prefix, tokenType, sansVowel, charMap.length());
 
         // format wasn't found
         if (amountCreated == -1) {
-            System.out.println("\tformat doesnt exist");
+            
             Logger.warn("Format Doesn;t Exist");
             this.createFormat(prefix, tokenType, sansVowel, charMap.length());
             return totalPermutations;
         } else {
             // format was found
-            System.out.println("\tformat exists");
+            
             Logger.info("format exists");
             return totalPermutations - amountCreated;
         }
@@ -835,17 +839,17 @@ public class DatabaseManager extends Function {
      * @throws SQLException thrown whenever there is an error with the database
      */
     private void printData() throws SQLException {
-        System.out.println("current list of items: ");
+        
         Statement s = DatabaseConnection.createStatement();
         String sql = String.format("SELECT * FROM %s;", ID_TABLE);
         ResultSet r = s.executeQuery(sql);
 
         for (int i = 0; r.next(); i++) {
             String curr = r.getString("id");
-            System.out.printf("id(%d):  %s", i, curr);
+            System.out.println("id " + i+")" + ") " + curr);
             //Logger.info("Generated ID: "+i+" "+curr);
         }
-        System.out.println("done");
+        
         //Logger.info("Done with Print");
     }
 
@@ -855,7 +859,7 @@ public class DatabaseManager extends Function {
      * @throws SQLException thrown whenever there is an error with the database
      */
     public void printFormat() throws SQLException {
-        System.out.println("current list of items: ");
+        
         Statement s = DatabaseConnection.createStatement();
         String sql = String.format("SELECT * FROM %s;", FORMAT_TABLE);
         ResultSet r = s.executeQuery(sql);
@@ -872,7 +876,7 @@ public class DatabaseManager extends Function {
                     id, prefix, tokenType, sansVowel, rootLength, amountCreated);
         }
 
-        System.out.println("done");
+        
     }
 
     /**
@@ -881,7 +885,7 @@ public class DatabaseManager extends Function {
      * @throws SQLException
      */
     public void printCache() throws SQLException {
-        System.out.println("current list of items: ");
+        
         Statement s = DatabaseConnection.createStatement();
         String sql = String.format("SELECT * FROM %s;", SETTINGS_TABLE);
         ResultSet r = s.executeQuery(sql);
@@ -900,7 +904,7 @@ public class DatabaseManager extends Function {
                     prepend, prefix, tokenType, charMap, sansVowel, isAuto, isRandom, rootLength);
         }
 
-        System.out.println("done");
+        
     }
 
     /**
@@ -958,7 +962,7 @@ public class DatabaseManager extends Function {
      * @return true if table exists in database, false otherwise
      * @throws SQLException thrown whenever there is an error with the database
      */
-    private boolean tableExists(String tableName) throws SQLException {
+    public boolean tableExists(String tableName) throws SQLException {
         DatabaseMetaData metaData = DatabaseConnection.getMetaData();
 
         ResultSet databaseResponse = metaData.getTables(null, null, tableName, null);
