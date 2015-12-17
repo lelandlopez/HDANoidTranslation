@@ -957,8 +957,7 @@ public class DatabaseManager extends Function {
      * Checks to see if the database for the existence of a particular table. If
      * the database returns a null value then the given tableName does not exist
      * within the database.
-     *
-     * @param c connection to the database
+     *     
      * @return true if table exists in database, false otherwise
      * @throws SQLException thrown whenever there is an error with the database
      */

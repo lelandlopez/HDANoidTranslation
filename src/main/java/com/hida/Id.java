@@ -107,7 +107,7 @@ public abstract class Id implements Comparable<Id> {
      *
      * Returns true by default unless previously modified.
      *
-     * @return
+     * @return returns whether or not this id is unique against the database.
      */
     public boolean isUnique() {
         return Unique;
@@ -117,10 +117,10 @@ public abstract class Id implements Comparable<Id> {
      * Determines whether or not particular Id is not the first to be created
      * with it's particular BaseMap.
      *
-     * Should only be used to set false whenever an it is determined that this
-     * Id is not the first to have it's BaseMap value.
+     * Should only be used to set false whenever it is determined that this
+     * Id is not the first to have it's BaseMap value with a given prefix.
      *
-     * @param isUnique
+     * @param isUnique sets the uniqueness value 
      */
     public void setUnique(boolean isUnique) {
         this.Unique = isUnique;
